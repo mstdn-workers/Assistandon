@@ -43,9 +43,10 @@ namespace assistandon
         public void Stop() { }
 
         private MastodonClient client;
-        
-        
-        
+
+        public Dictionary<string, List<string>> WaitingBoard = new Dictionary<string, List<string>>();
+
+
         void MainLogic()
         {
             var appRegistration = AppRegistrateLogic();
@@ -122,14 +123,15 @@ namespace assistandon
 
             //htmlタグ除去
             var rejectHtmlTagReg = new Regex("<.*?>");
+            
 
             ltlStreaming.OnUpdate += (sender, e) =>
             {
                 var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
-                Console.WriteLine("update:"+e.Status.Account.Id+":"+content);
+                Console.WriteLine("update:" + e.Status.Account.Id + ":" + content);
 
                 this.CalledMe(content);
-                this.WaitingSearch(e.Status.Account.Id.ToString());
+                this.WaitCheckLogic(e.Status.Account.UserName);
             };
             await ltlStreaming.Start();
         }
@@ -143,6 +145,22 @@ namespace assistandon
             }
         }
         
+        void WaitCheckLogic(string userName)
+        {
+            try
+            {
+                var users = WaitingBoard[userName];
+                foreach(var user in users)
+                {
+                    client.PostStatus($"@{user} {userName}さん来たよ～", Visibility.Direct);
+                }
+                this.WaitingBoard.Remove(userName);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine($"WaitCheckLogic {userName}: {e.Message}");
+            }
+        }
 
         void WaitersCame()
         {
