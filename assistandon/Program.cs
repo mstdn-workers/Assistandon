@@ -7,6 +7,8 @@ using System.Configuration;
 using Topshelf;
 using Mastonet;
 using Mastonet.Entities;
+using System.Xml.Serialization;
+using System.IO;
 using System.Text.RegularExpressions;
 
 namespace assistandon
@@ -17,9 +19,9 @@ namespace assistandon
         {
             var rc = HostFactory.Run(x =>
             {
-                x.Service<MainLogic>(s =>
+                x.Service<Logic>(s =>
                 {
-                    s.ConstructUsing(name => new MainLogic());
+                    s.ConstructUsing(name => new Logic());
                     s.WhenStarted(ml => ml.Start());
                     s.WhenStopped(ml => ml.Stop());
                 });
@@ -35,46 +37,117 @@ namespace assistandon
         }
     }
 
-    public class MainLogic
+    class Logic
     {
-        public void Start() { logic(); }
+        public void Start() { MainLogic(); }
         public void Stop() { }
 
-
-
-        static void logic()
+        private MastodonClient client;
+        
+        
+        
+        void MainLogic()
         {
-            // Mastodon 認証関連
-            var appRegistration = new AppRegistration
-            {
-                Instance = ConfigurationManager.AppSettings["instanceUrl"],
-                ClientId = ConfigurationManager.AppSettings["clientID"],
-                ClientSecret = ConfigurationManager.AppSettings["clientSecret"],
-                Scope = Scope.Read
-            };
-            var authClient = new AuthenticationClient(appRegistration);
-            var auth = authClient.ConnectWithPassword(ConfigurationManager.AppSettings["loginId"], ConfigurationManager.AppSettings["loginPass"]).Result;
-            var client = new MastodonClient(appRegistration, auth);
-            Console.WriteLine("mastodon login ok");
-            
-            LTL_stream(client);
+            var appRegistration = AppRegistrateLogic();
+            var auth = AuthLogic();
+            this.client = new MastodonClient(appRegistration, auth);
+
+            LTL_stream();
         }
 
-        static async void LTL_stream(MastodonClient client)
+
+        AppRegistration AppRegistrateLogic()
+        {
+            var fileName = @".\AppRegistration.xml";
+            var appreg = new AppRegistration();
+
+            if (File.Exists(fileName))
+            {
+                Console.WriteLine($"\"{fileName}\"を読み込みます。");
+                var serializer = new XmlSerializer(typeof(AppRegistration));
+                using(var sr = new StreamReader(fileName))
+                {
+                    appreg = (AppRegistration)serializer.Deserialize(sr);
+                }
+            }
+            else
+            {
+                Console.WriteLine($"\"{fileName}\"が存在しません。作成します。設定値を編集して保存してください。");
+                appreg = new AppRegistration
+                {
+                    Instance = "Instance is Here! (ex: example.com)",
+                    ClientId = "Client_id is Here!",
+                    ClientSecret = "Client_secret is Here!",
+                    Scope = Scope.Follow | Scope.Read | Scope.Write
+                };
+                var serializer = new XmlSerializer(typeof(AppRegistration));
+                using(var sw = new StreamWriter(fileName))
+                {
+                    serializer.Serialize(sw, appreg);
+                }
+            }
+            return appreg;
+        }
+
+        Auth AuthLogic()
+        {
+
+            var fileName = @".\Auth.xml";
+            var auth = new Auth();
+
+            if (File.Exists(fileName))
+            {
+                Console.WriteLine($"\"{fileName}\"を読み込みます。");
+                var serializer = new XmlSerializer(typeof(Auth));
+                var sr = new StreamReader(fileName);
+                auth = (Auth)serializer.Deserialize(sr);
+            }
+            else
+            {
+                auth.AccessToken = "Access_token is Here!";
+                Console.WriteLine($"\"{fileName}\"が存在しません。作成します。設定値を編集して保存してください。");
+                var serializer = new XmlSerializer(typeof(Auth));
+                var sw = new StreamWriter(fileName);
+                serializer.Serialize(sw, auth);
+            }
+            return auth;
+        }
+
+        async void LTL_stream()
         {
             Console.WriteLine("LTL Connect");
 
             //LTLストリーム取得設定(mastonet改造拡張機能)
-            var ltlStreaming = client.GetLocalStreaming();
+            var ltlStreaming = this.client.GetLocalStreaming();
 
             //htmlタグ除去
             var rejectHtmlTagReg = new Regex("<.*?>");
 
             ltlStreaming.OnUpdate += (sender, e) =>
             {
-                Console.WriteLine("update:"+e.Status.Account.DisplayName+":"+e.Status.Content);
+                var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
+                Console.WriteLine("update:"+e.Status.Account.Id+":"+content);
+
+                this.CalledMe(content);
+                this.WaitingSearch(e.Status.Account.Id.ToString());
             };
             await ltlStreaming.Start();
         }
+
+        void CalledMe(string text)
+        {
+            var pattern = "^.*(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」).*$";
+            if (Regex.IsMatch(text, pattern))
+            {
+                this.client.PostStatus("呼んだ？", Visibility.Public);
+            }
+        }
+        
+
+        void WaitersCame()
+        {
+            client.PostStatus("きた", Visibility.Public);
+        }
+
     }
 }
