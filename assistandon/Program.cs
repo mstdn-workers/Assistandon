@@ -132,9 +132,12 @@ namespace assistandon
 
         void QuakeCheck(string text)
         {
-            var pattern = "^.*(揺れた？).*$";
+            var pattern = "^.*(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」).*((揺|ゆ)れた).*$";
             if (Regex.IsMatch(text, pattern))
             {
+                // htmlタグ除去
+                var rejectHtmlTagReg = new Regex("<.*?>");
+
                 // this.client.PostStatus("わたしの胸は揺れなかったよ。。。", Visibility.Public);
 
                 var options = new ArrayOptions();
@@ -142,7 +145,24 @@ namespace assistandon
                 try
                 {
                     var nervstatuses = this.client.GetAccountStatuses(5877, options).Result;
-                    Console.WriteLine($"{nervstatuses[0].Account.DisplayName}:{nervstatuses[0].Content}");
+                    var content = rejectHtmlTagReg.Replace(nervstatuses[0].Content, string.Empty);
+                    
+                    var jisinReg = new Regex(@"(?:【地震情報 )(.*)(?:】)(.*)(?:頃、)(.*)(?:を震源とする)(.*)(?:最大震度)(.*?)(?:を)(.*)(?:で観測しています。)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                    var m = jisinReg.Match(content);
+
+                    var date = m.Groups[1].Value;
+                    var time = m.Groups[2].Value;
+                    var kansokuchi = m.Groups[6].Value;
+                    var shindo = m.Groups[5].Value;
+                    var shingen = m.Groups[3].Value;
+
+                    var url = nervstatuses[0].Url;
+
+                    string tootText = $"{date}{time}頃に{kansokuchi}で震度{shindo}の地震があったらしいよ。震源は{shingen}みたいだね。詳細はここに書いてあったよ。{url}";
+
+                    this.client.PostStatus(tootText, Visibility.Public);
+
+                    Console.WriteLine(tootText);
                 }
                 catch(Exception e)
                 {
