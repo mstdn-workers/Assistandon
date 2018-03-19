@@ -44,18 +44,34 @@ namespace assistandon
 
         // Mastodon clients
         private MastodonClient client;
-        private MastodonClient nervClient;
 
         public Dictionary<string, List<string>> WaitingBoard = new Dictionary<string, List<string>>();
 
 
-        void MainLogic()
+        async Task MainLogic()
         {
+            // htmlタグ除去
+            var rejectHtmlTagReg = new Regex("<.*?>");
+
             // client初期化
             this.client = new MastodonClient(AppRegistrateLogic(), AuthLogic());
-            this.nervClient = new MastodonClient(AppRegistrateLogic(@".\NervAppRegistration.xml"), AuthLogic(@".\NervAuth.xml"));
 
-            LTL_stream();
+            Console.WriteLine("start");
+
+            //LTLストリーム取得設定(mastonet改造拡張機能)
+            var ltlStreaming = this.client.GetLocalStreaming();
+            ltlStreaming.OnUpdate += (sender, e) =>
+            {
+                var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
+
+                Console.WriteLine($"update:{e.Status.Account.Id}:{content}");
+
+                this.QuakeCheck(content);
+                // this.CalledMe(content);
+                // this.WaitCheckLogic(e.Status.Account.UserName);
+            };
+            await ltlStreaming.Start();
+            
         }
 
 
@@ -112,43 +128,26 @@ namespace assistandon
             }
             return auth;
         }
-
-        async void LTL_stream()
-        {
-            Console.WriteLine("LTL Connect");
-
-            //LTLストリーム取得設定(mastonet改造拡張機能)
-            var ltlStreaming = this.client.GetLocalStreaming();
-
-            //htmlタグ除去
-            var rejectHtmlTagReg = new Regex("<.*?>");
-            
-
-            ltlStreaming.OnUpdate += (sender, e) =>
-            {
-                var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
-                
-                Console.WriteLine("update:" + e.Status.Account.Id + ":" + content);
-
-                this.QuakeCheck(content);
-                this.CalledMe(content);
-                this.WaitCheckLogic(e.Status.Account.UserName);
-            };
-            await ltlStreaming.Start();
-        }
+        
 
         void QuakeCheck(string text)
         {
             var pattern = "^.*(揺れた？).*$";
             if (Regex.IsMatch(text, pattern))
             {
-                this.client.PostStatus("わたしの胸は揺れなかった。。。", Visibility.Public);
+                // this.client.PostStatus("わたしの胸は揺れなかったよ。。。", Visibility.Public);
 
                 var options = new ArrayOptions();
                 options.Limit = 1;
-                var nervClient = new MastodonClient(new AppRegistration() { Instance="unnerv.jp" }, new Auth());
-                var nervstatus = nervClient.GetAccountStatuses(1).Result;
-                Console.WriteLine(nervstatus);
+                try
+                {
+                    var nervstatuses = this.client.GetAccountStatuses(5877, options).Result;
+                    Console.WriteLine($"{nervstatuses[0].Account.DisplayName}:{nervstatuses[0].Content}");
+                }
+                catch(Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
             }
         }
 
