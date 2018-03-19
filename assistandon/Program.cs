@@ -42,24 +42,25 @@ namespace assistandon
         public void Start() { MainLogic(); }
         public void Stop() { }
 
+        // Mastodon clients
         private MastodonClient client;
+        private MastodonClient nervClient;
 
         public Dictionary<string, List<string>> WaitingBoard = new Dictionary<string, List<string>>();
 
 
         void MainLogic()
         {
-            var appRegistration = AppRegistrateLogic();
-            var auth = AuthLogic();
-            this.client = new MastodonClient(appRegistration, auth);
+            // client初期化
+            this.client = new MastodonClient(AppRegistrateLogic(), AuthLogic());
+            this.nervClient = new MastodonClient(AppRegistrateLogic(@".\NervAppRegistration.xml"), AuthLogic(@".\NervAuth.xml"));
 
             LTL_stream();
         }
 
 
-        AppRegistration AppRegistrateLogic()
+        AppRegistration AppRegistrateLogic(string fileName = @".\AppRegistration.xml")
         {
-            var fileName = @".\AppRegistration.xml";
             var appreg = new AppRegistration();
 
             if (File.Exists(fileName))
@@ -90,10 +91,8 @@ namespace assistandon
             return appreg;
         }
 
-        Auth AuthLogic()
+        Auth AuthLogic(string fileName = @".\Auth.xml")
         {
-
-            var fileName = @".\Auth.xml";
             var auth = new Auth();
 
             if (File.Exists(fileName))
@@ -128,12 +127,29 @@ namespace assistandon
             ltlStreaming.OnUpdate += (sender, e) =>
             {
                 var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
+                
                 Console.WriteLine("update:" + e.Status.Account.Id + ":" + content);
 
+                this.QuakeCheck(content);
                 this.CalledMe(content);
                 this.WaitCheckLogic(e.Status.Account.UserName);
             };
             await ltlStreaming.Start();
+        }
+
+        void QuakeCheck(string text)
+        {
+            var pattern = "^.*(揺れた？).*$";
+            if (Regex.IsMatch(text, pattern))
+            {
+                this.client.PostStatus("わたしの胸は揺れなかった。。。", Visibility.Public);
+
+                var options = new ArrayOptions();
+                options.Limit = 1;
+                var nervClient = new MastodonClient(new AppRegistration() { Instance="unnerv.jp" }, new Auth());
+                var nervstatus = nervClient.GetAccountStatuses(1).Result;
+                Console.WriteLine(nervstatus);
+            }
         }
 
         void CalledMe(string text)
