@@ -50,7 +50,6 @@ namespace assistandon
         private DateTime calledMeDateTime = new DateTime();
         private DateTime quakeCheckDateTime = new DateTime();
 
-
         async Task MainLogic()
         {
             // htmlタグ除去
@@ -77,11 +76,13 @@ namespace assistandon
             // htmlタグ除去
             var rejectHtmlTagReg = new Regex("<.*?>");
             var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
-            var span = new DateTime() + new TimeSpan(0, 15, 0);
 
             // 地震情報取得呼び出し
             if (Regex.IsMatch(content, RegexStringSet.QuakeCheckPattern) && DateTime.Now.CompareTo(this.quakeCheckDateTime + new TimeSpan(0, 15, 0)) == 1)
                 this.QuakeCheck(content);
+            // 現在時刻
+            else if (Regex.IsMatch(content, RegexStringSet.WhatTimePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 5, 0)) == 1)
+                this.WhatTime();
             // 返事（Yuki死活監視）
             else if (Regex.IsMatch(content, RegexStringSet.CallMePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 15, 0)) == 1)
                 this.CalledMe(content);
@@ -108,12 +109,13 @@ namespace assistandon
                 var jisinReg = new Regex(@"((\d{4})年(\d{1,})月(\d{1,})日)(】)((\d{1,})時(\d{1,})分)(頃、)(.*)(?:を震源とする)(.*)(?:最大震度)(.*?)(?:を)(.*)(?:で観測して)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                 var m = jisinReg.Match(content);
 
-                var year = m.Groups[2].Value;
-                var month = m.Groups[3].Value;
-                var day = m.Groups[4].Value;
-                var hour = m.Groups[7].Value;
-                var min = m.Groups[8].Value;
+                var year = int.Parse(m.Groups[2].Value);
+                var month = int.Parse(m.Groups[3].Value);
+                var day = int.Parse(m.Groups[4].Value);
+                var hour = int.Parse(m.Groups[7].Value);
+                var min = int.Parse(m.Groups[8].Value);
 
+                var quakeTime = new DateTime();
 
                 var datestr = m.Groups[1].Value;
                 var timestr = m.Groups[6].Value;
@@ -133,6 +135,11 @@ namespace assistandon
             {
                 Console.WriteLine(e.Message);
             }
+        }
+
+        void WhatTime()
+        {
+            this.client.PostStatus($"{DateTime.Now}", Visibility.Public);
         }
 
         void CalledMe(string content)
