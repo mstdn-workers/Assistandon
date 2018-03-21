@@ -69,13 +69,21 @@ namespace assistandon
             {
                 var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
                 Console.WriteLine($"update:{e.Status.Account.Id}:{content}");
-                this.Branch(e);
+                this.LocalUpdateBranch(e);
             };
-            await ltlStreaming.Start();
             
+            var userStreaming = this.client.GetUserStreaming();
+            userStreaming.OnNotification += (sender, e) =>
+            {
+                Console.WriteLine(e.Notification.Status.Content);
+            };
+
+            // awaitしない！
+            Task.Run(() => ltlStreaming.Start());
+            Task.Run(() => userStreaming.Start());
         }
 
-        void Branch(StreamUpdateEventArgs e)
+        void LocalUpdateBranch(StreamUpdateEventArgs e)
         {
             // htmlタグ除去
             var rejectHtmlTagReg = new Regex("<.*?>");
@@ -89,6 +97,7 @@ namespace assistandon
                 this.CalledMe(content);
         }
         
+
 
         void QuakeCheck(string text)
         {
