@@ -53,13 +53,12 @@ namespace assistandon
             // htmlタグ除去
             var rejectHtmlTagReg = new Regex("<.*?>");
 
-            // client初期化
+            // MastodonClient初期化
             this.client = new MastodonClient(AppRegistrateLogic(), AuthLogic());
-
-            Console.WriteLine("start");
-
+            
             //LTLストリーム取得設定(mastonet改造拡張機能)
             var ltlStreaming = this.client.GetLocalStreaming();
+            // LTLアップデート時処理
             ltlStreaming.OnUpdate += (sender, e) =>
             {
                 var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
@@ -67,7 +66,7 @@ namespace assistandon
                 Console.WriteLine($"update:{e.Status.Account.Id}:{content}");
 
                 this.QuakeCheck(content);
-                // this.CalledMe(content);
+                this.CalledMe(content);
                 // this.WaitCheckLogic(e.Status.Account.UserName);
             };
             await ltlStreaming.Start();
