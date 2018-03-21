@@ -211,6 +211,7 @@ namespace assistandon
             client.PostStatus("きた", Visibility.Public);
         }
 
+        // なぜか動かない
         void ShutdownToot()
         {
             this.client.PostStatus("Yuki, サービスを停止します.", Visibility.Public);
