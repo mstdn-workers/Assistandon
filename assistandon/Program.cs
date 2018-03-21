@@ -77,13 +77,10 @@ namespace assistandon
             var rejectHtmlTagReg = new Regex("<.*?>");
             var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
 
-            // 地震情報取得呼び出し
             if (Regex.IsMatch(content, RegexStringSet.QuakeCheckPattern) && DateTime.Now.CompareTo(this.quakeCheckDateTime + new TimeSpan(0, 15, 0)) == 1)
                 this.QuakeCheck(content);
-            // 現在時刻
             else if (Regex.IsMatch(content, RegexStringSet.WhatTimePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 5, 0)) == 1)
                 this.WhatTime();
-            // 返事（Yuki死活監視）
             else if (Regex.IsMatch(content, RegexStringSet.CallMePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 15, 0)) == 1)
                 this.CalledMe(content);
 
