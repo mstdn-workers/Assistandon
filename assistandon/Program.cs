@@ -40,7 +40,7 @@ namespace assistandon
     class Logic
     {
         public void Start() { MainLogic(); }
-        public void Stop() { }
+        public void Stop() { this.ShutdownToot(); }
 
         // Mastodon clients
         private MastodonClient client;
@@ -68,14 +68,24 @@ namespace assistandon
             ltlStreaming.OnUpdate += (sender, e) =>
             {
                 var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
-                Console.WriteLine($"update:{e.Status.Account.Id}:{content}");
-                this.Branch(e);
+                Console.WriteLine($"update from {e.Status.Account.UserName}: {content}");
+                this.LocalUpdateBranch(e);
             };
-            await ltlStreaming.Start();
             
+            var userStreaming = this.client.GetUserStreaming();
+            userStreaming.OnNotification += (sender, e) =>
+            {
+                var content = rejectHtmlTagReg.Replace(e.Notification.Status.Content, "");
+                Console.WriteLine($"notification from {e.Notification.Account.UserName}: {content}");
+                this.UserNotificationBranch(e);
+            };
+
+            // awaitしない！
+            Task.Run(() => ltlStreaming.Start());
+            Task.Run(() => userStreaming.Start());
         }
 
-        void Branch(StreamUpdateEventArgs e)
+        void LocalUpdateBranch(StreamUpdateEventArgs e)
         {
             // htmlタグ除去
             var rejectHtmlTagReg = new Regex("<.*?>");
@@ -88,7 +98,30 @@ namespace assistandon
             else if (Regex.IsMatch(content, RegexStringSet.CallMePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 5, 0)) == 1)
                 this.CalledMe(content);
         }
-        
+
+        void UserNotificationBranch(StreamNotificationEventArgs e)
+        {
+            // htmlタグ除去
+            var rejectHtmlTagReg = new Regex("<.*?>");
+            var content = rejectHtmlTagReg.Replace(e.Notification.Status.Content, "");
+
+            if (Regex.IsMatch(content, RegexStringSet.AdminCommandExecPattern) && e.Notification.Account.Id == long.Parse(ConfigurationManager.AppSettings["adminId"]))
+                this.AdminCommand(content, e);
+        }
+
+        void AdminCommand(string content, StreamNotificationEventArgs e)
+        {
+            Console.WriteLine("<<--  Admin Command START.  -->>");
+            Console.WriteLine($"Receive: {content}");
+            Console.WriteLine("  ----------------------------  ");
+            if (Regex.IsMatch(content, @"^.*(admincmd)$"))
+            {
+                var tootText = $"@{e.Notification.Account.UserName} I'm up.";
+                this.client.PostStatus(tootText, Visibility.Direct, e.Notification.Status.Id);
+                Console.WriteLine($"Toot: {tootText}");
+            }
+            Console.WriteLine("<<--  Admin Command STOP.  -->>");
+        }
 
         void QuakeCheck(string text)
         {
@@ -178,7 +211,10 @@ namespace assistandon
             client.PostStatus("きた", Visibility.Public);
         }
 
-
+        void ShutdownToot()
+        {
+            this.client.PostStatus("Yuki, サービスを停止します.", Visibility.Public);
+        }
 
         AppRegistration AppRegistrateLogic(string fileName = @".\AppRegistration.xml")
         {
