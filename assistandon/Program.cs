@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ServiceProcess;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -45,6 +46,8 @@ namespace assistandon
         // Mastodon clients
         private MastodonClient client;
 
+        // サービス開始時刻
+        private DateTime serviceStartedTime = DateTime.Now;
         // 最終ハートビート確認時刻
         private DateTime lastHeartBeatTime = DateTime.Now;
 
@@ -88,7 +91,7 @@ namespace assistandon
                 this.UserNotificationBranch(e);
             };
 
-
+            
 
             // awaitしない！
             Task.Run(() => ltlStreaming.Start());
@@ -126,7 +129,22 @@ namespace assistandon
             Console.WriteLine("  ----------------------------  ");
             if (Regex.IsMatch(content, @"^.*(admincmd)$"))
             {
+                // 死活確認
                 var tootText = $"@{e.Notification.Account.UserName} I'm up.";
+                this.client.PostStatus(tootText, Visibility.Direct, e.Notification.Status.Id);
+                Console.WriteLine($"Toot: {tootText}");
+            }
+            else if (Regex.IsMatch(content, @"^.*(admincmd) (restart)$"))
+            {
+                // サービス再起動
+                Console.WriteLine("アプリケーションを再起動します。");
+                this.ServiceRestart();
+                
+            }
+            else if(Regex.IsMatch(content, @"^.*(admincmd) (startdate)$"))
+            {
+                // サービス開始時刻
+                var tootText = $"@{e.Notification.Account.UserName} {this.serviceStartedTime}";
                 this.client.PostStatus(tootText, Visibility.Direct, e.Notification.Status.Id);
                 Console.WriteLine($"Toot: {tootText}");
             }
@@ -229,6 +247,12 @@ namespace assistandon
             {
 
             }
+        }
+
+        void ServiceRestart()
+        {
+            var sc = new ServiceController("Assistandon");
+            sc.Continue();
         }
 
         // なぜか動かない
