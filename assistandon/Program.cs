@@ -48,6 +48,7 @@ namespace assistandon
         private Dictionary<string, List<string>> WaitingBoard = new Dictionary<string, List<string>>();
 
         private DateTime calledMeDateTime = new DateTime();
+        private DateTime quakeCheckDateTime = new DateTime();
 
 
         async Task MainLogic()
@@ -75,6 +76,98 @@ namespace assistandon
             
         }
 
+        void Branch(StreamUpdateEventArgs e)
+        {
+            // htmlタグ除去
+            var rejectHtmlTagReg = new Regex("<.*?>");
+            var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
+            var span = new DateTime() + new TimeSpan(0, 15, 0);
+
+            // 地震情報取得呼び出し
+            if (Regex.IsMatch(content, RegexStringSet.QuakeCheckPattern) && DateTime.Now.CompareTo(this.quakeCheckDateTime + new TimeSpan(0, 15, 0)) == 1)
+                this.QuakeCheck(content);
+            // 返事（Yuki死活監視）
+            else if (Regex.IsMatch(content, RegexStringSet.CallMePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 15, 0)) == 1)
+                this.CalledMe(content);
+
+        }
+        
+
+        void QuakeCheck(string text)
+        {
+            this.quakeCheckDateTime = DateTime.Now;
+
+            // htmlタグ除去
+            var rejectHtmlTagReg = new Regex("<.*?>");
+
+            // this.client.PostStatus("わたしの胸は揺れなかったよ。。。", Visibility.Public);
+
+            var options = new ArrayOptions();
+            options.Limit = 1;
+            try
+            {
+                var nervstatuses = this.client.GetAccountStatuses(5877, options).Result;
+                var content = rejectHtmlTagReg.Replace(nervstatuses[0].Content, string.Empty);
+                    
+                var jisinReg = new Regex(@"((\d{4})年(\d{1,})月(\d{1,})日)(】)((\d{1,})時(\d{1,})分)(頃、)(.*)(?:を震源とする)(.*)(?:最大震度)(.*?)(?:を)(.*)(?:で観測して)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                var m = jisinReg.Match(content);
+
+                var year = m.Groups[2].Value;
+                var month = m.Groups[3].Value;
+                var day = m.Groups[4].Value;
+                var hour = m.Groups[7].Value;
+                var min = m.Groups[8].Value;
+
+
+                var datestr = m.Groups[1].Value;
+                var timestr = m.Groups[6].Value;
+                var kansokuchi = m.Groups[13].Value;
+                var shindo = m.Groups[12].Value;
+                var shingen = m.Groups[10].Value;
+
+                var url = nervstatuses[0].Url;
+
+                string tootText = $"{datestr}{timestr}頃に{kansokuchi}で震度{shindo}の地震があったらしいよ。震源は{shingen}みたいだね。詳細はここに書いてあったよ。{url}";
+
+                this.client.PostStatus(tootText, Visibility.Public);
+
+                Console.WriteLine(tootText);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+
+        void CalledMe(string content)
+        {
+            this.client.PostStatus("呼んだ？", Visibility.Public);
+            this.calledMeDateTime = DateTime.Now;
+        }
+        
+        void WaitCheckLogic(string userName)
+        {
+            try
+            {
+                var users = WaitingBoard[userName];
+                foreach(var user in users)
+                {
+                    client.PostStatus($"@{user} {userName}さん来たよ～", Visibility.Direct);
+                }
+                this.WaitingBoard.Remove(userName);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine($"WaitCheckLogic {userName}: {e.Message}");
+            }
+        }
+
+        void WaitersCame()
+        {
+            client.PostStatus("きた", Visibility.Public);
+        }
+
+
 
         AppRegistration AppRegistrateLogic(string fileName = @".\AppRegistration.xml")
         {
@@ -84,7 +177,7 @@ namespace assistandon
             {
                 Console.WriteLine($"\"{fileName}\"を読み込みます。");
                 var serializer = new XmlSerializer(typeof(AppRegistration));
-                using(var sr = new StreamReader(fileName))
+                using (var sr = new StreamReader(fileName))
                 {
                     appreg = (AppRegistration)serializer.Deserialize(sr);
                 }
@@ -100,7 +193,7 @@ namespace assistandon
                     Scope = Scope.Follow | Scope.Read | Scope.Write
                 };
                 var serializer = new XmlSerializer(typeof(AppRegistration));
-                using(var sw = new StreamWriter(fileName))
+                using (var sw = new StreamWriter(fileName))
                 {
                     serializer.Serialize(sw, appreg);
                 }
@@ -129,88 +222,5 @@ namespace assistandon
             }
             return auth;
         }
-        
-
-        void QuakeCheck(string text)
-        {
-            var pattern = "^.*(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」).*((揺|ゆ)れた).*$";
-            if (Regex.IsMatch(text, pattern))
-            {
-                // htmlタグ除去
-                var rejectHtmlTagReg = new Regex("<.*?>");
-
-                // this.client.PostStatus("わたしの胸は揺れなかったよ。。。", Visibility.Public);
-
-                var options = new ArrayOptions();
-                options.Limit = 1;
-                try
-                {
-                    var nervstatuses = this.client.GetAccountStatuses(5877, options).Result;
-                    var content = rejectHtmlTagReg.Replace(nervstatuses[0].Content, string.Empty);
-                    
-                    var jisinReg = new Regex(@"((\d{4})年(\d{1,})月(\d{1,})日)(】)((\d{1,})時(\d{1,})分)(頃、)(.*)(?:を震源とする)(.*)(?:最大震度)(.*?)(?:を)(.*)(?:で観測して)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                    var m = jisinReg.Match(content);
-
-                    var year = m.Groups[2].Value;
-                    var month = m.Groups[3].Value;
-                    var day = m.Groups[4].Value;
-                    var hour = m.Groups[7].Value;
-                    var min = m.Groups[8].Value;
-
-
-                    var datestr = m.Groups[1].Value;
-                    var timestr = m.Groups[6].Value;
-                    var kansokuchi = m.Groups[13].Value;
-                    var shindo = m.Groups[12].Value;
-                    var shingen = m.Groups[10].Value;
-
-                    var url = nervstatuses[0].Url;
-
-                    string tootText = $"{datestr}{timestr}頃に{kansokuchi}で震度{shindo}の地震があったらしいよ。震源は{shingen}みたいだね。詳細はここに書いてあったよ。{url}";
-
-                    this.client.PostStatus(tootText, Visibility.Public);
-
-                    Console.WriteLine(tootText);
-                }
-                catch(Exception e)
-                {
-                    Console.WriteLine(e.Message);
-                }
-            }
-        }
-
-        void CalledMe(string text)
-        {
-            var pattern = "^.*(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」).*$";
-            var span = new DateTime() + new TimeSpan(0, 15,0 );
-            if (Regex.IsMatch(text, pattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 15, 0 )) == 1)
-            {
-                this.client.PostStatus("呼んだ？", Visibility.Public);
-                this.calledMeDateTime = DateTime.Now;
-            }
-        }
-        
-        void WaitCheckLogic(string userName)
-        {
-            try
-            {
-                var users = WaitingBoard[userName];
-                foreach(var user in users)
-                {
-                    client.PostStatus($"@{user} {userName}さん来たよ～", Visibility.Direct);
-                }
-                this.WaitingBoard.Remove(userName);
-            }
-            catch(Exception e)
-            {
-                Console.WriteLine($"WaitCheckLogic {userName}: {e.Message}");
-            }
-        }
-
-        void WaitersCame()
-        {
-            client.PostStatus("きた", Visibility.Public);
-        }
-
     }
 }
