@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ServiceProcess;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -45,6 +46,11 @@ namespace assistandon
         // Mastodon clients
         private MastodonClient client;
 
+        // サービス開始時刻
+        private DateTime serviceStartedTime = DateTime.Now;
+        // 最終ハートビート確認時刻
+        private DateTime lastHeartBeatTime = DateTime.Now;
+
         // earthquake userId
         private long earthquakeUserId = long.Parse(ConfigurationManager.AppSettings["earthquakeUserId"]);
 
@@ -60,8 +66,7 @@ namespace assistandon
 
             // MastodonClient初期化
             this.client = new MastodonClient(AppRegistrateLogic(), AuthLogic());
-
-            this.client.PostStatus("おはよー", Visibility.Public);
+            
             //LTLストリーム取得設定(mastonet改造拡張機能)
             var ltlStreaming = this.client.GetLocalStreaming();
             // LTLアップデート時処理
@@ -71,7 +76,13 @@ namespace assistandon
                 Console.WriteLine($"update from {e.Status.Account.UserName}: {content}");
                 this.LocalUpdateBranch(e);
             };
+            // ハートビート受信処理
+            ltlStreaming.OnHeartbeat += (sender, e) =>
+            {
+                this.lastHeartBeatTime = DateTime.Now;
+            };
             
+            // mentionのところ
             var userStreaming = this.client.GetUserStreaming();
             userStreaming.OnNotification += (sender, e) =>
             {
@@ -79,6 +90,8 @@ namespace assistandon
                 Console.WriteLine($"notification from {e.Notification.Account.UserName}: {content}");
                 this.UserNotificationBranch(e);
             };
+
+            
 
             // awaitしない！
             Task.Run(() => ltlStreaming.Start());
@@ -116,7 +129,22 @@ namespace assistandon
             Console.WriteLine("  ----------------------------  ");
             if (Regex.IsMatch(content, @"^.*(admincmd)$"))
             {
+                // 死活確認
                 var tootText = $"@{e.Notification.Account.UserName} I'm up.";
+                this.client.PostStatus(tootText, Visibility.Direct, e.Notification.Status.Id);
+                Console.WriteLine($"Toot: {tootText}");
+            }
+            else if (Regex.IsMatch(content, @"^.*(admincmd) (restart)$"))
+            {
+                // サービス再起動
+                Console.WriteLine("アプリケーションを再起動します。");
+                this.ServiceRestart();
+                
+            }
+            else if(Regex.IsMatch(content, @"^.*(admincmd) (startdate)$"))
+            {
+                // サービス開始時刻
+                var tootText = $"@{e.Notification.Account.UserName} {this.serviceStartedTime}";
                 this.client.PostStatus(tootText, Visibility.Direct, e.Notification.Status.Id);
                 Console.WriteLine($"Toot: {tootText}");
             }
@@ -211,6 +239,23 @@ namespace assistandon
             client.PostStatus("きた", Visibility.Public);
         }
 
+
+        void HeartBeatCheck()
+        {
+            bool checkFlag = true;
+            while (checkFlag)
+            {
+
+            }
+        }
+
+        void ServiceRestart()
+        {
+            var sc = new ServiceController("Assistandon");
+            sc.Continue();
+        }
+
+        // なぜか動かない
         void ShutdownToot()
         {
             this.client.PostStatus("Yuki, サービスを停止します.", Visibility.Public);
