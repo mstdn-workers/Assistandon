@@ -251,9 +251,7 @@ namespace assistandon
 
         void ServiceRestart()
         {
-            var sc = new ServiceController("Assistandon");
-            sc.Stop();
-            sc.Start();
+            Environment.Exit(-1);
         }
 
         // なぜか動かない
