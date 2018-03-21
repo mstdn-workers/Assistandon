@@ -96,6 +96,7 @@ namespace assistandon
             // awaitしない！
             Task.Run(() => ltlStreaming.Start());
             Task.Run(() => userStreaming.Start());
+            Task.Run(() => this.HeartBeatCheck());
         }
 
         void LocalUpdateBranch(StreamUpdateEventArgs e)
@@ -245,7 +246,30 @@ namespace assistandon
             bool checkFlag = true;
             while (checkFlag)
             {
-
+                if(DateTime.Now - this.lastHeartBeatTime > new TimeSpan(0, 0, 45))
+                {
+                    try
+                    {
+                        this.client.PostStatus("ストリーム途切れてるみたいだからサービス再起動するね。",Visibility.Public );
+                        ServiceRestart();
+                    }
+                    catch
+                    {
+                        ServiceRestart();
+                    }
+                }
+                else if (DateTime.Now - this.lastHeartBeatTime > new TimeSpan(0, 0, 20))
+                {
+                    try
+                    {
+                        this.client.PostStatus("ストリーム途切れてるっぽい？", Visibility.Public);
+                    }
+                    catch
+                    {
+                        ServiceRestart();
+                    }
+                }
+                System.Threading.Thread.Sleep(20000);
             }
         }
 
