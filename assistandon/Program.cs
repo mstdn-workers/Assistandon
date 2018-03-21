@@ -65,12 +65,8 @@ namespace assistandon
             ltlStreaming.OnUpdate += (sender, e) =>
             {
                 var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
-
                 Console.WriteLine($"update:{e.Status.Account.Id}:{content}");
-
-                this.QuakeCheck(content);
-                this.CalledMe(content);
-                // this.WaitCheckLogic(e.Status.Account.UserName);
+                this.Branch(e);
             };
             await ltlStreaming.Start();
             
