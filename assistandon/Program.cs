@@ -40,7 +40,7 @@ namespace assistandon
     class Logic
     {
         public void Start() { MainLogic(); }
-        public void Stop() { }
+        public void Stop() { this.ShutdownToot(); }
 
         // Mastodon clients
         private MastodonClient client;
@@ -211,7 +211,10 @@ namespace assistandon
             client.PostStatus("きた", Visibility.Public);
         }
 
-
+        void ShutdownToot()
+        {
+            this.client.PostStatus("Yuki, サービスを停止します.", Visibility.Public);
+        }
 
         AppRegistration AppRegistrateLogic(string fileName = @".\AppRegistration.xml")
         {
