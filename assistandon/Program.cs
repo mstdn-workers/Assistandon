@@ -45,6 +45,9 @@ namespace assistandon
         // Mastodon clients
         private MastodonClient client;
 
+        // 最終ハートビート確認時刻
+        private DateTime lastHeartBeatTime = DateTime.Now;
+
         // earthquake userId
         private long earthquakeUserId = long.Parse(ConfigurationManager.AppSettings["earthquakeUserId"]);
 
@@ -60,8 +63,7 @@ namespace assistandon
 
             // MastodonClient初期化
             this.client = new MastodonClient(AppRegistrateLogic(), AuthLogic());
-
-            this.client.PostStatus("おはよー", Visibility.Public);
+            
             //LTLストリーム取得設定(mastonet改造拡張機能)
             var ltlStreaming = this.client.GetLocalStreaming();
             // LTLアップデート時処理
@@ -71,7 +73,13 @@ namespace assistandon
                 Console.WriteLine($"update from {e.Status.Account.UserName}: {content}");
                 this.LocalUpdateBranch(e);
             };
+            // ハートビート受信処理
+            ltlStreaming.OnHeartbeat += (sender, e) =>
+            {
+                this.lastHeartBeatTime = DateTime.Now;
+            };
             
+            // mentionのところ
             var userStreaming = this.client.GetUserStreaming();
             userStreaming.OnNotification += (sender, e) =>
             {
@@ -79,6 +87,8 @@ namespace assistandon
                 Console.WriteLine($"notification from {e.Notification.Account.UserName}: {content}");
                 this.UserNotificationBranch(e);
             };
+
+
 
             // awaitしない！
             Task.Run(() => ltlStreaming.Start());
@@ -209,6 +219,16 @@ namespace assistandon
         void WaitersCame()
         {
             client.PostStatus("きた", Visibility.Public);
+        }
+
+
+        void HeartBeatCheck()
+        {
+            bool checkFlag = true;
+            while (checkFlag)
+            {
+
+            }
         }
 
         // なぜか動かない
