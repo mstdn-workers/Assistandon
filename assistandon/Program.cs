@@ -45,6 +45,9 @@ namespace assistandon
         // Mastodon clients
         private MastodonClient client;
 
+        // earthquake userId
+        private long earthquakeUserId = long.Parse(ConfigurationManager.AppSettings["earthquakeUserId"]);
+
         private Dictionary<string, List<string>> WaitingBoard = new Dictionary<string, List<string>>();
 
         private DateTime calledMeDateTime = new DateTime();
@@ -81,38 +84,27 @@ namespace assistandon
                 this.QuakeCheck(content);
             else if (Regex.IsMatch(content, RegexStringSet.WhatTimePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 5, 0)) == 1)
                 this.WhatTime();
-            else if (Regex.IsMatch(content, RegexStringSet.CallMePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 15, 0)) == 1)
+            else if (Regex.IsMatch(content, RegexStringSet.CallMePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 5, 0)) == 1)
                 this.CalledMe(content);
-
         }
         
 
         void QuakeCheck(string text)
         {
             this.quakeCheckDateTime = DateTime.Now;
-
-            // htmlタグ除去
-            var rejectHtmlTagReg = new Regex("<.*?>");
-
-            // this.client.PostStatus("わたしの胸は揺れなかったよ。。。", Visibility.Public);
-
+            
             var options = new ArrayOptions();
             options.Limit = 1;
             try
             {
-                var nervstatuses = this.client.GetAccountStatuses(5877, options).Result;
+                var nervstatuses = this.client.GetAccountStatuses(this.earthquakeUserId, options).Result;
+                // htmlタグ除去
+                var rejectHtmlTagReg = new Regex("<.*?>");
                 var content = rejectHtmlTagReg.Replace(nervstatuses[0].Content, string.Empty);
-                    
+                var url = nervstatuses[0].Url;
+                
                 var jisinReg = new Regex(@"((\d{4})年(\d{1,})月(\d{1,})日)(】)((\d{1,})時(\d{1,})分)(頃、)(.*)(?:を震源とする)(.*)(?:最大震度)(.*?)(?:を)(.*)(?:で観測して)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                 var m = jisinReg.Match(content);
-
-                var year = int.Parse(m.Groups[2].Value);
-                var month = int.Parse(m.Groups[3].Value);
-                var day = int.Parse(m.Groups[4].Value);
-                var hour = int.Parse(m.Groups[7].Value);
-                var min = int.Parse(m.Groups[8].Value);
-
-                var quakeTime = new DateTime();
 
                 var datestr = m.Groups[1].Value;
                 var timestr = m.Groups[6].Value;
@@ -120,12 +112,29 @@ namespace assistandon
                 var shindo = m.Groups[12].Value;
                 var shingen = m.Groups[10].Value;
 
-                var url = nervstatuses[0].Url;
+                var year = int.Parse(m.Groups[2].Value);
+                var month = int.Parse(m.Groups[3].Value);
+                var day = int.Parse(m.Groups[4].Value);
+                var hour = int.Parse(m.Groups[7].Value);
+                var min = int.Parse(m.Groups[8].Value);
 
-                string tootText = $"{datestr}{timestr}頃に{kansokuchi}で震度{shindo}の地震があったらしいよ。震源は{shingen}みたいだね。詳細はここに書いてあったよ。{url}";
+                var quakeTime = new DateTime(year, month, day, hour, min, 0);
+                var elapsedTime = DateTime.Now - quakeTime;
 
+                var tootText = string.Empty;
+
+                if ((elapsedTime < new TimeSpan(0, 15, 0)) || (elapsedTime < new TimeSpan(0, 30, 0) && shindo != "1"))
+                    tootText = $"{timestr}頃に{kansokuchi}で震度{shindo}の地震があったらしいよ。震源は{shingen}みたいだね。詳細はここに書いてあったよ。{url}";
+                else if (shindo == "1")
+                    tootText = $"私の胸は揺れなかった。。。";
+                else if (elapsedTime < new TimeSpan(0, 30, 0))
+                    tootText = $"いつの話をしているの？直近の地震は{timestr}頃に{kansokuchi}で観測した震度{shindo}だよ？";
+                else if (elapsedTime < new TimeSpan(1, 0, 0))
+                    tootText = $"いつの話をしているの？";
+                else if (elapsedTime > new TimeSpan(1, 0, 0, 0))
+                    tootText = $"今日は揺れてないよ。";
+                
                 this.client.PostStatus(tootText, Visibility.Public);
-
                 Console.WriteLine(tootText);
             }
             catch(Exception e)
