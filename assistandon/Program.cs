@@ -45,7 +45,9 @@ namespace assistandon
         // Mastodon clients
         private MastodonClient client;
 
-        public Dictionary<string, List<string>> WaitingBoard = new Dictionary<string, List<string>>();
+        private Dictionary<string, List<string>> WaitingBoard = new Dictionary<string, List<string>>();
+
+        private DateTime calledMeDateTime = new DateTime();
 
 
         async Task MainLogic()
@@ -180,9 +182,11 @@ namespace assistandon
         void CalledMe(string text)
         {
             var pattern = "^.*(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」).*$";
-            if (Regex.IsMatch(text, pattern))
+            var span = new DateTime() + new TimeSpan(0, 15,0 );
+            if (Regex.IsMatch(text, pattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 15, 0 )) == 1)
             {
                 this.client.PostStatus("呼んだ？", Visibility.Public);
+                this.calledMeDateTime = DateTime.Now;
             }
         }
         
