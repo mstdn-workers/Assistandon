@@ -60,7 +60,8 @@ namespace assistandon
 
             // MastodonClient初期化
             this.client = new MastodonClient(AppRegistrateLogic(), AuthLogic());
-            
+
+            this.client.PostStatus("おはよー", Visibility.Public);
             //LTLストリーム取得設定(mastonet改造拡張機能)
             var ltlStreaming = this.client.GetLocalStreaming();
             // LTLアップデート時処理
@@ -101,8 +102,9 @@ namespace assistandon
                 // htmlタグ除去
                 var rejectHtmlTagReg = new Regex("<.*?>");
                 var content = rejectHtmlTagReg.Replace(nervstatuses[0].Content, string.Empty);
-                var url = nervstatuses[0].Url;
-                
+                // var url = nervstatuses[0].Url;
+                var url = "https://unnerv.jp/";
+
                 var jisinReg = new Regex(@"((\d{4})年(\d{1,})月(\d{1,})日)(】)((\d{1,})時(\d{1,})分)(頃、)(.*)(?:を震源とする)(.*)(?:最大震度)(.*?)(?:を)(.*)(?:で観測して)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                 var m = jisinReg.Match(content);
 
