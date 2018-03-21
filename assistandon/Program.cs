@@ -53,13 +53,12 @@ namespace assistandon
             // htmlタグ除去
             var rejectHtmlTagReg = new Regex("<.*?>");
 
-            // client初期化
+            // MastodonClient初期化
             this.client = new MastodonClient(AppRegistrateLogic(), AuthLogic());
-
-            Console.WriteLine("start");
-
+            
             //LTLストリーム取得設定(mastonet改造拡張機能)
             var ltlStreaming = this.client.GetLocalStreaming();
+            // LTLアップデート時処理
             ltlStreaming.OnUpdate += (sender, e) =>
             {
                 var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
@@ -67,7 +66,7 @@ namespace assistandon
                 Console.WriteLine($"update:{e.Status.Account.Id}:{content}");
 
                 this.QuakeCheck(content);
-                // this.CalledMe(content);
+                this.CalledMe(content);
                 // this.WaitCheckLogic(e.Status.Account.UserName);
             };
             await ltlStreaming.Start();
@@ -147,18 +146,25 @@ namespace assistandon
                     var nervstatuses = this.client.GetAccountStatuses(5877, options).Result;
                     var content = rejectHtmlTagReg.Replace(nervstatuses[0].Content, string.Empty);
                     
-                    var jisinReg = new Regex(@"(?:【地震情報 )(.*)(?:】)(.*)(?:頃、)(.*)(?:を震源とする)(.*)(?:最大震度)(.*?)(?:を)(.*)(?:で観測しています。)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                    var jisinReg = new Regex(@"((\d{4})年(\d{1,})月(\d{1,})日)(】)((\d{1,})時(\d{1,})分)(頃、)(.*)(?:を震源とする)(.*)(?:最大震度)(.*?)(?:を)(.*)(?:で観測して)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                     var m = jisinReg.Match(content);
 
-                    var date = m.Groups[1].Value;
-                    var time = m.Groups[2].Value;
-                    var kansokuchi = m.Groups[6].Value;
-                    var shindo = m.Groups[5].Value;
-                    var shingen = m.Groups[3].Value;
+                    var year = m.Groups[2].Value;
+                    var month = m.Groups[3].Value;
+                    var day = m.Groups[4].Value;
+                    var hour = m.Groups[7].Value;
+                    var min = m.Groups[8].Value;
+
+
+                    var datestr = m.Groups[1].Value;
+                    var timestr = m.Groups[6].Value;
+                    var kansokuchi = m.Groups[13].Value;
+                    var shindo = m.Groups[12].Value;
+                    var shingen = m.Groups[10].Value;
 
                     var url = nervstatuses[0].Url;
 
-                    string tootText = $"{date}{time}頃に{kansokuchi}で震度{shindo}の地震があったらしいよ。震源は{shingen}みたいだね。詳細はここに書いてあったよ。{url}";
+                    string tootText = $"{datestr}{timestr}頃に{kansokuchi}で震度{shindo}の地震があったらしいよ。震源は{shingen}みたいだね。詳細はここに書いてあったよ。{url}";
 
                     this.client.PostStatus(tootText, Visibility.Public);
 
