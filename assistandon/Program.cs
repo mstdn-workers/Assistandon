@@ -207,6 +207,11 @@ namespace assistandon
                     serializer.Serialize(sw, appreg);
                 }
             }
+            Console.WriteLine($"Instance: {appreg.Instance}");
+            Console.WriteLine($"ClientID: {appreg.ClientId}");
+            Console.WriteLine($"ClientSecret: {appreg.ClientSecret}");
+
+
             return appreg;
         }
 
@@ -229,6 +234,9 @@ namespace assistandon
                 var sw = new StreamWriter(fileName);
                 serializer.Serialize(sw, auth);
             }
+
+            Console.WriteLine($"AccessToken: {auth.AccessToken}");
+
             return auth;
         }
     }
