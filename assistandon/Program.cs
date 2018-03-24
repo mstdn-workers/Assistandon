@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Configuration;
 using Topshelf;
 using Mastonet;
@@ -41,7 +42,7 @@ namespace assistandon
     class Logic
     {
         public void Start() { MainLogic(); }
-        public void Stop() { this.ShutdownToot(); }
+        public void Stop() { }
 
         // Mastodon clients
         private MastodonClient client;
@@ -121,6 +122,16 @@ namespace assistandon
 
             if (Regex.IsMatch(content, RegexStringSet.AdminCommandExecPattern) && e.Notification.Account.Id == long.Parse(ConfigurationManager.AppSettings["adminId"]))
                 this.AdminCommand(content, e);
+        }
+
+        void Cycle()
+        {
+            while (true)
+            {
+                Thread.Sleep(5000);
+
+                this.HeartBeatCheck();
+            }
         }
 
         void AdminCommand(string content, StreamNotificationEventArgs e)
@@ -240,37 +251,32 @@ namespace assistandon
             client.PostStatus("きた", Visibility.Public);
         }
 
-
         void HeartBeatCheck()
         {
-            bool checkFlag = true;
-            while (checkFlag)
+            if(DateTime.Now - this.lastHeartBeatTime > new TimeSpan(0, 0, 45))
             {
-                if(DateTime.Now - this.lastHeartBeatTime > new TimeSpan(0, 0, 45))
+                try
                 {
-                    try
-                    {
-                        this.client.PostStatus("ストリーム途切れてるみたいだからサービス再起動するね。",Visibility.Public );
-                        ServiceRestart();
-                    }
-                    catch
-                    {
-                        ServiceRestart();
-                    }
+                    this.client.PostStatus("ストリーム途切れてるみたいだからサービス再起動するね。",Visibility.Public );
+                    ServiceRestart();
                 }
-                else if (DateTime.Now - this.lastHeartBeatTime > new TimeSpan(0, 0, 20))
+                catch
                 {
-                    try
-                    {
-                        this.client.PostStatus("ストリーム途切れてるっぽい？", Visibility.Public);
-                    }
-                    catch
-                    {
-                        ServiceRestart();
-                    }
+                    ServiceRestart();
                 }
-                System.Threading.Thread.Sleep(20000);
             }
+            else if (DateTime.Now - this.lastHeartBeatTime > new TimeSpan(0, 0, 20))
+            {
+                try
+                {
+                    this.client.PostStatus("ストリーム途切れてるっぽい？", Visibility.Public);
+                }
+                catch
+                {
+                    ServiceRestart();
+                }
+            }
+            
         }
 
         void ServiceRestart()
