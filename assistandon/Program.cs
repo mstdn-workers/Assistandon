@@ -78,7 +78,7 @@ namespace assistandon
             ltlStreaming.OnUpdate += (sender, e) =>
             {
                 var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
-                Console.WriteLine($"update from {e.Status.Account.UserName}: {content}");
+                Console.WriteLine($"LTL_Stream update {e.Status.Account.UserName}: {content}");
                 this.LocalUpdateBranch(e);
             };
             // ハートビート受信処理
@@ -87,8 +87,14 @@ namespace assistandon
                 this.lastHeartBeatTime = DateTime.Now;
             };
             
-            // mentionのところ
+            // UserStreamのところ
             var userStreaming = this.client.GetUserStreaming();
+            userStreaming.OnUpdate += (sender, e) =>
+            {
+                var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
+                Console.WriteLine($"UserStream update {e.Status.Account.UserName}: {content}");
+                this.UserStreamUpdateBranch(e);
+            };
             userStreaming.OnNotification += (sender, e) =>
             {
                 var content = rejectHtmlTagReg.Replace(e.Notification.Status.Content, "");
@@ -132,6 +138,16 @@ namespace assistandon
                 this.QuakeCheck(e.Notification.Account.UserName);
         }
 
+        void UserStreamUpdateBranch(StreamUpdateEventArgs e)
+        {
+            // htmlタグ除去
+            var rejectHtmlTagReg = new Regex("<.*?>");
+            var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
+
+            if (Regex.IsMatch(content, RegexStringSet.AdminCommandExecPattern) && e.Status.Account.Id == long.Parse(ConfigurationManager.AppSettings["eewUserId"]))
+                this.EewAnnounce(content);
+
+        }
 
         // 定期実行処理
         void Cycle()
@@ -238,6 +254,18 @@ namespace assistandon
                 }
 
                 Console.WriteLine(tootText);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+
+        void EewAnnounce(string content)
+        {
+            try
+            {
+
             }
             catch(Exception e)
             {
