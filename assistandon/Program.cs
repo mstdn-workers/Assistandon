@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Configuration;
 using Topshelf;
 using Mastonet;
@@ -41,7 +42,7 @@ namespace assistandon
     class Logic
     {
         public void Start() { MainLogic(); }
-        public void Stop() { this.ShutdownToot(); }
+        public void Stop() { }
 
         // Mastodon clients
         private MastodonClient client;
@@ -56,9 +57,13 @@ namespace assistandon
 
         private Dictionary<string, List<string>> WaitingBoard = new Dictionary<string, List<string>>();
 
+        private Dictionary<long, DateTime> calledUsers = new Dictionary<long, DateTime>();
+
         private DateTime calledMeDateTime = new DateTime();
         private DateTime quakeCheckDateTime = new DateTime();
 
+
+        // MainLogic
         async Task MainLogic()
         {
             // htmlタグ除去
@@ -96,8 +101,11 @@ namespace assistandon
             // awaitしない！
             Task.Run(() => ltlStreaming.Start());
             Task.Run(() => userStreaming.Start());
+            Task.Run(() => this.HeartBeatCheck());
         }
 
+
+        // 処理分割
         void LocalUpdateBranch(StreamUpdateEventArgs e)
         {
             // htmlタグ除去
@@ -105,7 +113,7 @@ namespace assistandon
             var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
 
             if (Regex.IsMatch(content, RegexStringSet.QuakeCheckPattern) && DateTime.Now.CompareTo(this.quakeCheckDateTime + new TimeSpan(0, 15, 0)) == 1)
-                this.QuakeCheck(content);
+                this.QuakeCheck();
             else if (Regex.IsMatch(content, RegexStringSet.WhatTimePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 5, 0)) == 1)
                 this.WhatTime();
             else if (Regex.IsMatch(content, RegexStringSet.CallMePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 5, 0)) == 1)
@@ -120,8 +128,24 @@ namespace assistandon
 
             if (Regex.IsMatch(content, RegexStringSet.AdminCommandExecPattern) && e.Notification.Account.Id == long.Parse(ConfigurationManager.AppSettings["adminId"]))
                 this.AdminCommand(content, e);
+            else if (Regex.IsMatch(content, RegexStringSet.DirectQuakeCheckPattern))
+                this.QuakeCheck(e.Notification.Account.UserName);
         }
 
+
+        // 定期実行処理
+        void Cycle()
+        {
+            while (true)
+            {
+                Thread.Sleep(5000);
+
+                this.HeartBeatCheck();
+            }
+        }
+
+
+        // 各種関数
         void AdminCommand(string content, StreamNotificationEventArgs e)
         {
             Console.WriteLine("<<--  Admin Command START.  -->>");
@@ -139,19 +163,24 @@ namespace assistandon
                 // サービス再起動
                 Console.WriteLine("アプリケーションを再起動します。");
                 this.ServiceRestart();
-                
+
             }
-            else if(Regex.IsMatch(content, @"^.*(admincmd) (startdate)$"))
+            else if (Regex.IsMatch(content, @"^.*(admincmd) (startdate)$"))
             {
                 // サービス開始時刻
                 var tootText = $"@{e.Notification.Account.UserName} {this.serviceStartedTime}";
                 this.client.PostStatus(tootText, Visibility.Direct, e.Notification.Status.Id);
                 Console.WriteLine($"Toot: {tootText}");
             }
-            Console.WriteLine("<<--  Admin Command STOP.  -->>");
+            else if (Regex.IsMatch(content, @"^.*(admincmd) (yure)$"))
+            {
+                // 地震情報
+                this.QuakeCheck();
+            }
+                Console.WriteLine("<<--  Admin Command STOP.  -->>");
         }
 
-        void QuakeCheck(string text)
+        void QuakeCheck(string userName="")
         {
             this.quakeCheckDateTime = DateTime.Now;
             
@@ -196,8 +225,18 @@ namespace assistandon
                     tootText = $"いつの話をしているの？";
                 else if (elapsedTime > new TimeSpan(1, 0, 0, 0))
                     tootText = $"今日は揺れてないよ。";
-                
-                this.client.PostStatus(tootText, Visibility.Public);
+
+                if (userName == "")
+                {
+                    // 通常処理
+                    this.client.PostStatus(tootText, Visibility.Public);
+                }
+                else
+                {
+                    // ユーザ指定時処理
+                    this.client.PostStatus($"@{userName} {tootText}", Visibility.Direct);
+                }
+
                 Console.WriteLine(tootText);
             }
             catch(Exception e)
@@ -239,14 +278,32 @@ namespace assistandon
             client.PostStatus("きた", Visibility.Public);
         }
 
-
         void HeartBeatCheck()
         {
-            bool checkFlag = true;
-            while (checkFlag)
+            if(DateTime.Now - this.lastHeartBeatTime > new TimeSpan(0, 0, 45))
             {
-
+                try
+                {
+                    this.client.PostStatus("ストリーム途切れてるみたいだからサービス再起動するね。",Visibility.Public );
+                    ServiceRestart();
+                }
+                catch
+                {
+                    ServiceRestart();
+                }
             }
+            else if (DateTime.Now - this.lastHeartBeatTime > new TimeSpan(0, 0, 20))
+            {
+                try
+                {
+                    this.client.PostStatus("ストリーム途切れてるっぽい？", Visibility.Public);
+                }
+                catch
+                {
+                    ServiceRestart();
+                }
+            }
+            
         }
 
         void ServiceRestart()
