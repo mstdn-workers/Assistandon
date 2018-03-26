@@ -78,7 +78,7 @@ namespace assistandon
             ltlStreaming.OnUpdate += (sender, e) =>
             {
                 var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
-                Console.WriteLine($"update from {e.Status.Account.UserName}: {content}");
+                Console.WriteLine($"LTL_Stream update {e.Status.Account.UserName}: {content}");
                 this.LocalUpdateBranch(e);
             };
             // ハートビート受信処理
@@ -87,8 +87,14 @@ namespace assistandon
                 this.lastHeartBeatTime = DateTime.Now;
             };
             
-            // mentionのところ
+            // UserStreamのところ
             var userStreaming = this.client.GetUserStreaming();
+            userStreaming.OnUpdate += (sender, e) =>
+            {
+                var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
+                Console.WriteLine($"UserStream update {e.Status.Account.UserName}: {content}");
+                this.UserStreamUpdateBranch(e);
+            };
             userStreaming.OnNotification += (sender, e) =>
             {
                 var content = rejectHtmlTagReg.Replace(e.Notification.Status.Content, "");
@@ -101,7 +107,7 @@ namespace assistandon
             // awaitしない！
             Task.Run(() => ltlStreaming.Start());
             Task.Run(() => userStreaming.Start());
-            Task.Run(() => this.HeartBeatCheck());
+            Task.Run(() => this.Cycle());
         }
 
 
@@ -132,6 +138,16 @@ namespace assistandon
                 this.QuakeCheck(e.Notification.Account.UserName);
         }
 
+        void UserStreamUpdateBranch(StreamUpdateEventArgs e)
+        {
+            // htmlタグ除去
+            var rejectHtmlTagReg = new Regex("<.*?>");
+            var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
+
+            if (Regex.IsMatch(content, RegexStringSet.EewPattern) && e.Status.Account.Id == long.Parse(ConfigurationManager.AppSettings["eewUserId"]))
+                this.EewAnnounce(content);
+
+        }
 
         // 定期実行処理
         void Cycle()
@@ -240,6 +256,41 @@ namespace assistandon
                 Console.WriteLine(tootText);
             }
             catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+
+        void EewAnnounce(string content)
+        {
+            Console.WriteLine("EEW Announce");
+            try
+            {
+                var url = "https://unnerv.jp/";
+
+                var jisinReg = new Regex(@"(最終報)(.*)((\d{4})年(\d{1,})月(\d{1,})日)(.*)((\d{1,})時(\d{1,})分)(頃、)(.*)(?:を震源とする)(.*)(?:最大震度)(.*?)(?:と推定)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                var m = jisinReg.Match(content);
+
+                var datestr = m.Groups[3].Value;
+                var timestr = m.Groups[8].Value;
+                var shindo = m.Groups[14].Value;
+                var shingen = m.Groups[12].Value;
+
+                var year = int.Parse(m.Groups[4].Value);
+                var month = int.Parse(m.Groups[5].Value);
+                var day = int.Parse(m.Groups[6].Value);
+                var hour = int.Parse(m.Groups[9].Value);
+                var min = int.Parse(m.Groups[10].Value);
+
+                var quakeTime = new DateTime(year, month, day, hour, min, 0);
+                var elapsedTime = DateTime.Now - quakeTime;
+
+                var tootText = $"{timestr}頃に推定震度{shindo}の地震があったみたいだよ。震源は{shingen}みたい。気を付けてね。詳細はここに書いてあったよ。{url}";
+
+                this.client.PostStatus(tootText, Visibility.Public);
+                Console.WriteLine(tootText);
+            }
+            catch (Exception e)
             {
                 Console.WriteLine(e.Message);
             }
