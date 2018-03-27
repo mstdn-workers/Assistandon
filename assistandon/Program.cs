@@ -120,10 +120,15 @@ namespace assistandon
 
             if (Regex.IsMatch(content, RegexStringSet.QuakeCheckPattern) && DateTime.Now.CompareTo(this.quakeCheckDateTime + new TimeSpan(0, 15, 0)) == 1)
                 this.QuakeCheck();
-            else if (Regex.IsMatch(content, RegexStringSet.WhatTimePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 5, 0)) == 1)
+            else if (Regex.IsMatch(content, RegexStringSet.WhatTimePattern))
                 this.WhatTime();
+            else if (Regex.IsMatch(content, RegexStringSet.YukiOutPattern))
+                this.client.PostStatus("アウトじゃないよ！セーフだよ！", Visibility.Public);
+            else if (Regex.IsMatch(content, RegexStringSet.NewComerPattern) && e.Status.Account.Id == long.Parse(ConfigurationManager.AppSettings["renchanUserId"]))
+                this.WellcomeNewComer(content);
             else if (Regex.IsMatch(content, RegexStringSet.CallMePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 5, 0)) == 1)
                 this.CalledMe(content);
+
         }
 
         void UserNotificationBranch(StreamNotificationEventArgs e)
@@ -194,6 +199,26 @@ namespace assistandon
                 this.QuakeCheck();
             }
                 Console.WriteLine("<<--  Admin Command STOP.  -->>");
+        }
+
+        void WellcomeNewComer(string content)
+        {
+            Console.WriteLine("newcomer");
+            try
+            {
+                var newcomerReg = new Regex(RegexStringSet.NewComerPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                var m = newcomerReg.Match(content);
+
+                var userName = m.Groups[2];
+                var displayName = m.Groups[3];
+
+                var tootText = $"はじめまして、ようこそ社畜丼へ！ここはみんなローカルタイムラインで会話してます。@{userName}さんのことはなんて呼べばいいですか？";
+                this.client.PostStatus(tootText, Visibility.Public);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
 
         void QuakeCheck(string userName="")
