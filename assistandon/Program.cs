@@ -354,10 +354,7 @@ namespace assistandon
             }
         }
 
-        void WaitersCame()
-        {
-            client.PostStatus("きた", Visibility.Public);
-        }
+        
 
         void HeartBeatCheck()
         {
