@@ -128,11 +128,12 @@ namespace assistandon
                 this.client.PostStatus("アウトじゃないよ！セーフだよ！", Visibility.Public);
             else if (Regex.IsMatch(content, RegexStringSet.NewComerPattern) && e.Status.Account.Id == renchanId)
                 this.WellcomeNewComer(content);
-            else if (e.Status.Account.Id == renchanId)
-                this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} {e.Status.Url}", Visibility.Direct);
             else if (Regex.IsMatch(content, RegexStringSet.CallMePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 5, 0)) == 1)
                 this.CalledMe(content);
 
+            // renchan
+            if (e.Status.Account.Id == renchanId)
+                this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} {e.Status.Url}", Visibility.Direct);
         }
 
         void UserNotificationBranch(StreamNotificationEventArgs e)
