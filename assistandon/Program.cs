@@ -118,15 +118,17 @@ namespace assistandon
             var rejectHtmlTagReg = new Regex("<.*?>");
             var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
 
+            var renchanId = long.Parse(ConfigurationManager.AppSettings["renchanUserId"]);
+
             if (Regex.IsMatch(content, RegexStringSet.QuakeCheckPattern) && DateTime.Now.CompareTo(this.quakeCheckDateTime + new TimeSpan(0, 15, 0)) == 1)
                 this.QuakeCheck();
             else if (Regex.IsMatch(content, RegexStringSet.WhatTimePattern))
                 this.WhatTime();
             else if (Regex.IsMatch(content, RegexStringSet.YukiOutPattern))
                 this.client.PostStatus("アウトじゃないよ！セーフだよ！", Visibility.Public);
-            else if (Regex.IsMatch(content, RegexStringSet.NewComerPattern) && e.Status.Account.Id == long.Parse(ConfigurationManager.AppSettings["renchanUserId"]))
+            else if (Regex.IsMatch(content, RegexStringSet.NewComerPattern) && e.Status.Account.Id == renchanId)
                 this.WellcomeNewComer(content);
-            else if (e.Status.Account.Id == long.Parse(ConfigurationManager.AppSettings["renchanUserId"]))
+            else if (e.Status.Account.Id == renchanId)
                 this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} {e.Status.Url}", Visibility.Direct);
             else if (Regex.IsMatch(content, RegexStringSet.CallMePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 5, 0)) == 1)
                 this.CalledMe(content);
