@@ -392,12 +392,7 @@ namespace assistandon
             Environment.Exit(-1);
         }
 
-        // なぜか動かない
-        void ShutdownToot()
-        {
-            this.client.PostStatus("Yuki, サービスを停止します.", Visibility.Public);
-        }
-
+        
         AppRegistration AppRegistrateLogic(string fileName = @".\AppRegistration.xml")
         {
             var appreg = new AppRegistration();
