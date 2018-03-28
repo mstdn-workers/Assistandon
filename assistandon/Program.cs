@@ -12,6 +12,8 @@ using Mastonet.Entities;
 using System.Xml.Serialization;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Runtime.Serialization;
+using System.Xml;
 
 namespace assistandon
 {
@@ -59,7 +61,7 @@ namespace assistandon
 
         private Dictionary<long, DateTime> calledUsers = new Dictionary<long, DateTime>();
 
-        private Dictionary<string, string> nickNamePairs = new Dictionary<string, string>();
+        public NickNames nickNames = new NickNames();
 
         private DateTime calledMeDateTime = new DateTime();
         private DateTime quakeCheckDateTime = new DateTime();
@@ -368,39 +370,15 @@ namespace assistandon
 
             foreach(string waitingUser in waitingUsers)
             {
-                this.client.PostStatus($"@{waitingUser} {GetNickName(userName)}さん来たよー。", Visibility.Direct);
+                this.client.PostStatus($"@{waitingUser} {nickNames.GetNickName(userName)}さん来たよー。", Visibility.Direct);
             }
-        }
-
-        string GetNickName(string userName)
-        {
-            string nickName = userName;
-            if (nickNamePairs.TryGetValue(userName, out nickName)) ;
-            else nickNamePairs[userName] = nickName;
-            return nickName;
         }
 
         void SetNickName(string content)
         {
-            Console.WriteLine("SetNickName");
-            try
-            {
-                var setNickNameReg = new Regex(RegexStringSet.SetNickName, RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                var m = setNickNameReg.Match(content);
-
-                var userName = m.Groups[2].Value;
-                var nickName = m.Groups[4].Value;
-
-                nickNamePairs[userName] = nickName;
-
-                this.SaveNickNamePairs();
-
-                this.client.PostStatus($"{userName}さんのことを{nickName}さんって呼べばいいのね。", Visibility.Public);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-            }
+            var nickNamePair = nickNames.SetNickName(content);
+            this.client.PostStatus($"じゃあこれからは{nickNamePair["userName"]}さんのこと{nickNamePair["nickName"]}って呼ぶね！", Visibility.Public);
+            this.SaveNickNamePairs();
         }
 
         void HeartBeatCheck()
@@ -436,22 +414,29 @@ namespace assistandon
             Environment.Exit(-1);
         }
 
+
         void SaveNickNamePairs()
         {
-            var serializer = new XmlSerializer(typeof(Dictionary<string, string>));
-            var sw = new StreamWriter(@".\NickNamePairs.xml");
-            serializer.Serialize(sw, this.nickNamePairs);
+            var fileName = @".\NickNames.xml";
+
+            var serializer = new DataContractSerializer(typeof(NickNames));
+            XmlWriter xw = XmlWriter.Create(fileName);
+            serializer.WriteObject(xw, nickNames);
+            xw.Close();
         }
-        
+
         void LoadNickNamePairs()
         {
             try
             {
-                var serializer = new XmlSerializer(typeof(Dictionary<string, string>));
-                var sr = new StreamReader(@".\NickNamePairs.xml");
-                this.nickNamePairs = (Dictionary<string, string>)serializer.Deserialize(sr);
+                var fileName = @".\NickNames.xml";
+
+                var serializer = new DataContractSerializer(typeof(NickNames));
+                XmlReader xr = XmlReader.Create(fileName);
+                this.nickNames = (NickNames)serializer.ReadObject(xr);
+                xr.Close();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine(e.Message);
             }

@@ -17,5 +17,6 @@ namespace assistandon
         public static string AdminCommandExecPattern = @"^(.*)(admincmd)(.*)$";
         public static string NewComerPattern = @"^(初めまして)@(\w*).(.*?)さん#お久bot$";
         public static string SetNickName = @".*(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」).?(\w*).*?(は|を)(.*)(って|と)(よんで|読んで|呼んで)";
+        public static string SetReverseName = @"^(.*)(は)(\w*?)(?!\w).*$";
     }
 }
