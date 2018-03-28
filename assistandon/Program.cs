@@ -59,6 +59,8 @@ namespace assistandon
 
         private Dictionary<long, DateTime> calledUsers = new Dictionary<long, DateTime>();
 
+        private Dictionary<string, string> nickNamePairs = new Dictionary<string, string>();
+
         private DateTime calledMeDateTime = new DateTime();
         private DateTime quakeCheckDateTime = new DateTime();
 
@@ -68,6 +70,8 @@ namespace assistandon
         {
             // htmlタグ除去
             var rejectHtmlTagReg = new Regex("<.*?>");
+
+            this.LoadNickNamePairs();
 
             // MastodonClient初期化
             this.client = new MastodonClient(AppRegistrateLogic(), AuthLogic());
@@ -122,6 +126,10 @@ namespace assistandon
 
             if (Regex.IsMatch(content, RegexStringSet.QuakeCheckPattern) && DateTime.Now.CompareTo(this.quakeCheckDateTime + new TimeSpan(0, 15, 0)) == 1)
                 this.QuakeCheck();
+            else if (Regex.IsMatch(content, RegexStringSet.SetNickName))
+                this.SetNickName(content);
+            else if (WaitingBoard.TryGetValue(e.Status.Account.UserName, out var n))
+                this.CallWaitingUser(e.Status.Account.UserName);
             else if (Regex.IsMatch(content, RegexStringSet.WhatTimePattern))
                 this.WhatTime();
             else if (Regex.IsMatch(content, RegexStringSet.YukiOutPattern))
@@ -354,7 +362,46 @@ namespace assistandon
             }
         }
 
-        
+        void CallWaitingUser(string userName)
+        {
+            var waitingUsers = WaitingBoard[userName];
+
+            foreach(string waitingUser in waitingUsers)
+            {
+                this.client.PostStatus($"@{waitingUser} {GetNickName(userName)}さん来たよー。", Visibility.Direct);
+            }
+        }
+
+        string GetNickName(string userName)
+        {
+            string nickName = userName;
+            if (nickNamePairs.TryGetValue(userName, out nickName)) ;
+            else nickNamePairs[userName] = nickName;
+            return nickName;
+        }
+
+        void SetNickName(string content)
+        {
+            Console.WriteLine("SetNickName");
+            try
+            {
+                var setNickNameReg = new Regex(RegexStringSet.SetNickName, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                var m = setNickNameReg.Match(content);
+
+                var userName = m.Groups[2].Value;
+                var nickName = m.Groups[4].Value;
+
+                nickNamePairs[userName] = nickName;
+
+                this.SaveNickNamePairs();
+
+                this.client.PostStatus($"{userName}さんのことを{nickName}さんって呼べばいいのね。", Visibility.Public);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
 
         void HeartBeatCheck()
         {
@@ -389,7 +436,27 @@ namespace assistandon
             Environment.Exit(-1);
         }
 
+        void SaveNickNamePairs()
+        {
+            var serializer = new XmlSerializer(typeof(Dictionary<string, string>));
+            var sw = new StreamWriter(@".\NickNamePairs.xml");
+            serializer.Serialize(sw, this.nickNamePairs);
+        }
         
+        void LoadNickNamePairs()
+        {
+            try
+            {
+                var serializer = new XmlSerializer(typeof(Dictionary<string, string>));
+                var sr = new StreamReader(@".\NickNamePairs.xml");
+                this.nickNamePairs = (Dictionary<string, string>)serializer.Deserialize(sr);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+
         AppRegistration AppRegistrateLogic(string fileName = @".\AppRegistration.xml")
         {
             var appreg = new AppRegistration();
