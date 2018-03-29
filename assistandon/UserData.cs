@@ -11,5 +11,7 @@ namespace assistandon
         public string UserName = string.Empty;
         public long UserId = -1;
         public string NickName = string.Empty;
+
+
     }
 }

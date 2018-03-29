@@ -18,7 +18,7 @@ namespace assistandon
             return -1;
         }
 
-        UserHasData GetUserHasData(long userId)
+        public UserHasData GetUserHasData(long userId)
         {
             var data = new UserHasData();
             var index = this.IndexWithUserId(userId);
@@ -29,7 +29,7 @@ namespace assistandon
             return data;
         }
 
-        void SetUserHasData(UserHasData data)
+        public void SetUserHasData(UserHasData data)
         {
             var index = this.IndexWithUserId(data.UserId);
             if (index == -1)

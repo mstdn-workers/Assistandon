@@ -1,17 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+using Mastonet.Entities;
+using System.Runtime.Serialization;
 
 namespace assistandon
 {
-    class UserList
+    [DataContract]
+    public class UserList
     {
         public List<UserData> list = new List<UserData>();
-        
-        UserData GetUserDataWithUserId(long userId)
+
+        public bool SearchUserDataWithUserId(long userId)
+        {
+            foreach (var data in list)
+                if (data.UserId == userId)
+                    return true;
+            return false;
+        }
+
+        public UserData GetUserDataWithUserId(long userId)
         {
             var userData = new UserData();
             foreach (var data in list)
@@ -20,7 +27,7 @@ namespace assistandon
             return userData;
         }
 
-        UserData GetUserDataWithUserName(string userName)
+        public UserData GetUserDataWithUserName(string userName)
         {
             var userData = new UserData();
             foreach (var data in list)
@@ -29,7 +36,7 @@ namespace assistandon
             return userData;
         }
 
-        UserData GetUserDataWithNickName(string nickName)
+        public UserData GetUserDataWithNickName(string nickName)
         {
             var userData = new UserData();
             foreach (var data in list)
@@ -38,11 +45,11 @@ namespace assistandon
             return userData;
         }
 
-        void SetUserDataWithUserId(long userId, UserData data)
+        public void SetUserDataWithUserId(UserData data)
         {
             foreach (var x in list.Select((item, index) => new {item,  index }))
             {
-                if(x.item.UserId == userId)
+                if(x.item.UserId == data.UserId)
                 {
                     list[x.index] = data;
                     return;
@@ -51,11 +58,11 @@ namespace assistandon
             list.Add(data);
         }
 
-        void SetUserDataWithUserName(string userName, UserData data)
+        public void SetUserDataWithUserName(UserData data)
         {
             foreach (var x in list.Select((item, index) => new { item, index }))
             {
-                if (x.item.UserName.Equals(userName))
+                if (x.item.UserName.Equals(data.UserName))
                 {
                     list[x.index] = data;
                     return;
@@ -64,17 +71,29 @@ namespace assistandon
             list.Add(data);
         }
 
-        void SetUserDataWithNickName(string nickName, UserData data)
+        public void SetUserDataWithNickName(UserData data)
         {
             foreach (var x in list.Select((item, index) => new { item, index }))
             {
-                if (x.item.NickName.Equals(nickName))
+                if (x.item.NickName.Equals(data.NickName))
                 {
                     list[x.index] = data;
                     return;
                 }
             }
             list.Add(data);
+        }
+
+        public void AddUser(Account account)
+        {
+            if (!this.SearchUserDataWithUserId(account.Id))
+            {
+                var data = new UserData();
+                data.UserId = account.Id;
+                data.UserName = account.UserName;
+                data.NickName = account.DisplayName;
+                list.Add(data);
+            }
         }
 
     }

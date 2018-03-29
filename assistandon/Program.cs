@@ -66,13 +66,16 @@ namespace assistandon
 
         private Dictionary<string, DateTime> callTime = new Dictionary<string, DateTime>();
 
+
+        [DataMember]
+        public UserList userList = new UserList();
+        public UserHasDataList userHasDataList = new UserHasDataList();
+
         // MainLogic
         async Task MainLogic()
         {
             // htmlタグ除去
             var rejectHtmlTagReg = new Regex("<.*?>");
-
-            this.LoadNickNamePairs();
 
             // MastodonClient初期化
             this.client = new MastodonClient(AppRegistrateLogic(), AuthLogic());
@@ -82,6 +85,7 @@ namespace assistandon
             // LTLアップデート時処理
             ltlStreaming.OnUpdate += (sender, e) =>
             {
+                this.userList.AddUser(e.Status.Account);
                 var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
                 Console.WriteLine($"LTL_Stream update {e.Status.Account.UserName}: {content}");
                 this.LocalUpdateBranch(e);
@@ -139,7 +143,7 @@ namespace assistandon
                 this.WellcomeNewComer(content);
             else if (Regex.IsMatch(content, RegexStringSet.CallMePattern))
                 this.CalledMe(e);
-
+            
             // renchan
             if (e.Status.Account.Id == renchanId)
                 this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} {e.Status.Url}", Visibility.Direct);
@@ -342,8 +346,13 @@ namespace assistandon
 
         void CalledMe(StreamUpdateEventArgs e)
         {
-            var userName = e.Status.Account.UserName;
-            this.client.PostStatus($"{nickNames.GetNickName(userName)}呼んだ？", Visibility.Public);
+            var data = this.userHasDataList.GetUserHasData(e.Status.Account.Id);
+            if (data.lastCallTime + new TimeSpan(0, 5, 0) < DateTime.Now)
+            {
+                this.client.PostStatus($"{this.userList.GetUserDataWithUserId(e.Status.Account.Id).NickName}呼んだ？", Visibility.Public);
+                data.lastCallTime = DateTime.Now;
+                this.userHasDataList.SetUserHasData(data);
+            }
         }
         
         void WaitCheckLogic(string userName)
@@ -375,9 +384,24 @@ namespace assistandon
 
         void SetNickName(string content)
         {
-            var nickNamePair = nickNames.SetNickName(content);
-            this.client.PostStatus($"じゃあこれからは{nickNamePair["userName"]}さんのこと{nickNamePair["nickName"]}って呼ぶね！", Visibility.Public);
-            this.SaveNickNamePairs();
+            try
+            {
+                var setNickNameReg = new Regex(RegexStringSet.SetNickName, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                var m = setNickNameReg.Match(content);
+
+                var userName = m.Groups[3].Value;
+                var nickName = m.Groups[5].Value;
+
+                var data = this.userList.GetUserDataWithUserName(userName);
+                data.NickName = nickName;
+                this.userList.SetUserDataWithUserName(data);
+                this.client.PostStatus($"じゃあこれからは{userName}さんのこと{nickName}って呼ぶね！", Visibility.Public);
+                this.SaveUserList();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
 
         void HeartBeatCheck()
@@ -414,25 +438,26 @@ namespace assistandon
         }
 
 
-        void SaveNickNamePairs()
+        void SaveUserList()
         {
-            var fileName = @".\NickNames.xml";
+            Console.WriteLine("UserList Save");
+            var fileName = @".\UserList.xml";
 
-            var serializer = new DataContractSerializer(typeof(NickNames));
+            var serializer = new DataContractSerializer(typeof(UserList));
             XmlWriter xw = XmlWriter.Create(fileName);
-            serializer.WriteObject(xw, nickNames);
+            serializer.WriteObject(xw, userList);
             xw.Close();
         }
 
-        void LoadNickNamePairs()
+        void LoadUserLists()
         {
             try
             {
-                var fileName = @".\NickNames.xml";
+                var fileName = @".\UserList.xml";
 
-                var serializer = new DataContractSerializer(typeof(NickNames));
+                var serializer = new DataContractSerializer(typeof(UserList));
                 XmlReader xr = XmlReader.Create(fileName);
-                this.nickNames = (NickNames)serializer.ReadObject(xr);
+                this.userList = (UserList)serializer.ReadObject(xr);
                 xr.Close();
             }
             catch (Exception e)
