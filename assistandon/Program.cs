@@ -138,8 +138,8 @@ namespace assistandon
                 this.client.PostStatus("アウトじゃないよ！セーフだよ！", Visibility.Public);
             else if (Regex.IsMatch(content, RegexStringSet.NewComerPattern) && e.Status.Account.Id == renchanId)
                 this.WellcomeNewComer(content);
-            else if (Regex.IsMatch(content, RegexStringSet.CallMePattern) && DateTime.Now.CompareTo(this.calledMeDateTime + new TimeSpan(0, 5, 0)) == 1)
-                this.CalledMe(content);
+            else if (Regex.IsMatch(content, RegexStringSet.CallMePattern))
+                this.CalledMe(e);
 
             // renchan
             if (e.Status.Account.Id == renchanId)
@@ -341,9 +341,10 @@ namespace assistandon
             this.client.PostStatus($"{DateTime.Now}", Visibility.Public);
         }
 
-        void CalledMe(string content)
+        void CalledMe(StreamUpdateEventArgs e)
         {
-            this.client.PostStatus("呼んだ？", Visibility.Public);
+            var userName = e.Status.Account.UserName;
+            this.client.PostStatus($"{nickNames.GetNickName(userName)}呼んだ？", Visibility.Public);
             this.calledMeDateTime = DateTime.Now;
         }
         
