@@ -115,6 +115,10 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RegexStringSet.cs" />
+    <Compile Include="UserData.cs" />
+    <Compile Include="UserHasData.cs" />
+    <Compile Include="UserHasDataList.cs" />
+    <Compile Include="UserList.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">

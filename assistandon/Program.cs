@@ -62,10 +62,9 @@ namespace assistandon
         private Dictionary<long, DateTime> calledUsers = new Dictionary<long, DateTime>();
 
         public NickNames nickNames = new NickNames();
-
-        private DateTime calledMeDateTime = new DateTime();
         private DateTime quakeCheckDateTime = new DateTime();
 
+        private Dictionary<string, DateTime> callTime = new Dictionary<string, DateTime>();
 
         // MainLogic
         async Task MainLogic()
@@ -345,7 +344,6 @@ namespace assistandon
         {
             var userName = e.Status.Account.UserName;
             this.client.PostStatus($"{nickNames.GetNickName(userName)}呼んだ？", Visibility.Public);
-            this.calledMeDateTime = DateTime.Now;
         }
         
         void WaitCheckLogic(string userName)
