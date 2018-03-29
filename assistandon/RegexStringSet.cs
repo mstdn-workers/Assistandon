@@ -16,7 +16,7 @@ namespace assistandon
         public static string YukiOutPattern = @"^.*(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」).*(あうと|アウト|ｱｳﾄ).*$";
         public static string AdminCommandExecPattern = @"^(.*)(admincmd)(.*)$";
         public static string NewComerPattern = @"^(初めまして)@(\w*).(.*?)さん#お久bot$";
-        public static string SetNickName = @"(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」).*、([A-Za-z_0-9]*).*(は|を)(.*)(って|と)(よんで|読んで|呼んで)";
+        public static string SetNickName = @"(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」)([^A-Za-z_0-9]*)([A-Za-z_0-9]*).*(は|を)(.*)(って|と)(よんで|読んで|呼んで)";
         public static string SetReverseName = @"^.*「(.*)」.*?(\w*?)(?!\w).*$";
     }
 }
