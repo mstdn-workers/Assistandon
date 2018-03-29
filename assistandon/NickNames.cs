@@ -24,8 +24,8 @@ namespace assistandon
                 var setNickNameReg = new Regex(RegexStringSet.SetNickName, RegexOptions.IgnoreCase | RegexOptions.Singleline);
                 var m = setNickNameReg.Match(content);
 
-                nickNameSet["userName"] = m.Groups[2].Value;
-                nickNameSet["nickName"] = m.Groups[4].Value;
+                nickNameSet["userName"] = m.Groups[3].Value;
+                nickNameSet["nickName"] = m.Groups[5].Value;
 
                 _nickNamePairs[nickNameSet["userName"]] = nickNameSet["nickName"];
             }
