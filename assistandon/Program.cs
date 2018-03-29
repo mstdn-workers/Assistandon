@@ -12,6 +12,8 @@ using Mastonet.Entities;
 using System.Xml.Serialization;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Runtime.Serialization;
+using System.Xml;
 
 namespace assistandon
 {
@@ -59,6 +61,8 @@ namespace assistandon
 
         private Dictionary<long, DateTime> calledUsers = new Dictionary<long, DateTime>();
 
+        public NickNames nickNames = new NickNames();
+
         private DateTime calledMeDateTime = new DateTime();
         private DateTime quakeCheckDateTime = new DateTime();
 
@@ -68,6 +72,8 @@ namespace assistandon
         {
             // htmlタグ除去
             var rejectHtmlTagReg = new Regex("<.*?>");
+
+            this.LoadNickNamePairs();
 
             // MastodonClient初期化
             this.client = new MastodonClient(AppRegistrateLogic(), AuthLogic());
@@ -122,6 +128,10 @@ namespace assistandon
 
             if (Regex.IsMatch(content, RegexStringSet.QuakeCheckPattern) && DateTime.Now.CompareTo(this.quakeCheckDateTime + new TimeSpan(0, 15, 0)) == 1)
                 this.QuakeCheck();
+            else if (Regex.IsMatch(content, RegexStringSet.SetNickName))
+                this.SetNickName(content);
+            else if (WaitingBoard.TryGetValue(e.Status.Account.UserName, out var n))
+                this.CallWaitingUser(e.Status.Account.UserName);
             else if (Regex.IsMatch(content, RegexStringSet.WhatTimePattern))
                 this.WhatTime();
             else if (Regex.IsMatch(content, RegexStringSet.YukiOutPattern))
@@ -354,9 +364,21 @@ namespace assistandon
             }
         }
 
-        void WaitersCame()
+        void CallWaitingUser(string userName)
         {
-            client.PostStatus("きた", Visibility.Public);
+            var waitingUsers = WaitingBoard[userName];
+
+            foreach(string waitingUser in waitingUsers)
+            {
+                this.client.PostStatus($"@{waitingUser} {nickNames.GetNickName(userName)}さん来たよー。", Visibility.Direct);
+            }
+        }
+
+        void SetNickName(string content)
+        {
+            var nickNamePair = nickNames.SetNickName(content);
+            this.client.PostStatus($"じゃあこれからは{nickNamePair["userName"]}さんのこと{nickNamePair["nickName"]}って呼ぶね！", Visibility.Public);
+            this.SaveNickNamePairs();
         }
 
         void HeartBeatCheck()
@@ -392,10 +414,32 @@ namespace assistandon
             Environment.Exit(-1);
         }
 
-        // なぜか動かない
-        void ShutdownToot()
+
+        void SaveNickNamePairs()
         {
-            this.client.PostStatus("Yuki, サービスを停止します.", Visibility.Public);
+            var fileName = @".\NickNames.xml";
+
+            var serializer = new DataContractSerializer(typeof(NickNames));
+            XmlWriter xw = XmlWriter.Create(fileName);
+            serializer.WriteObject(xw, nickNames);
+            xw.Close();
+        }
+
+        void LoadNickNamePairs()
+        {
+            try
+            {
+                var fileName = @".\NickNames.xml";
+
+                var serializer = new DataContractSerializer(typeof(NickNames));
+                XmlReader xr = XmlReader.Create(fileName);
+                this.nickNames = (NickNames)serializer.ReadObject(xr);
+                xr.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
 
         AppRegistration AppRegistrateLogic(string fileName = @".\AppRegistration.xml")
