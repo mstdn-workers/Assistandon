@@ -60,8 +60,7 @@ namespace assistandon
         private Dictionary<string, List<string>> WaitingBoard = new Dictionary<string, List<string>>();
 
         private Dictionary<long, DateTime> calledUsers = new Dictionary<long, DateTime>();
-
-        public NickNames nickNames = new NickNames();
+        
         private DateTime quakeCheckDateTime = new DateTime();
 
         private Dictionary<string, DateTime> callTime = new Dictionary<string, DateTime>();
@@ -380,7 +379,7 @@ namespace assistandon
 
             foreach(string waitingUser in waitingUsers)
             {
-                this.client.PostStatus($"@{waitingUser} {nickNames.GetNickName(userName)}さん来たよー。", Visibility.Direct);
+                this.client.PostStatus($"@{waitingUser} {userList.GetUserDataWithUserName(userName).NickName}さん来たよー。", Visibility.Direct);
             }
         }
 
