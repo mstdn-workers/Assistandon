@@ -3,15 +3,27 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.Serialization;
 
 namespace assistandon
 {
+    [DataContract]
     class UserData
     {
-        public string UserName = string.Empty;
-        public long UserId = -1;
-        public string NickName = string.Empty;
+        [DataMember]
+        public string UserName;
 
+        [DataMember]
+        public long UserId;
 
+        [DataMember]
+        public string NickName;
+
+        public UserData()
+        {
+            UserName = "";
+            UserId = -1;
+            NickName = "";
+        }
     }
 }

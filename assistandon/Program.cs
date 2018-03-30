@@ -79,6 +79,8 @@ namespace assistandon
 
             // MastodonClient初期化
             this.client = new MastodonClient(AppRegistrateLogic(), AuthLogic());
+
+            this.userList.LoadUserLists();
             
             //LTLストリーム取得設定(mastonet改造拡張機能)
             var ltlStreaming = this.client.GetLocalStreaming();
@@ -396,7 +398,6 @@ namespace assistandon
                 data.NickName = nickName;
                 this.userList.SetUserDataWithUserName(data);
                 this.client.PostStatus($"じゃあこれからは{userName}さんのこと{nickName}って呼ぶね！", Visibility.Public);
-                this.SaveUserList();
             }
             catch (Exception e)
             {
@@ -437,34 +438,6 @@ namespace assistandon
             Environment.Exit(-1);
         }
 
-
-        void SaveUserList()
-        {
-            Console.WriteLine("UserList Save");
-            var fileName = @".\UserList.xml";
-
-            var serializer = new DataContractSerializer(typeof(UserList));
-            XmlWriter xw = XmlWriter.Create(fileName);
-            serializer.WriteObject(xw, userList);
-            xw.Close();
-        }
-
-        void LoadUserLists()
-        {
-            try
-            {
-                var fileName = @".\UserList.xml";
-
-                var serializer = new DataContractSerializer(typeof(UserList));
-                XmlReader xr = XmlReader.Create(fileName);
-                this.userList = (UserList)serializer.ReadObject(xr);
-                xr.Close();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-            }
-        }
 
         AppRegistration AppRegistrateLogic(string fileName = @".\AppRegistration.xml")
         {
