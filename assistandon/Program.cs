@@ -133,7 +133,7 @@ namespace assistandon
             if (Regex.IsMatch(content, RegexStringSet.QuakeCheckPattern) && DateTime.Now.CompareTo(this.quakeCheckDateTime + new TimeSpan(0, 15, 0)) == 1)
                 this.QuakeCheck();
             else if (Regex.IsMatch(content, RegexStringSet.SetNickName))
-                this.SetNickName(content);
+                this.SetNickName(content, e);
             else if (WaitingBoard.TryGetValue(e.Status.Account.UserName, out var n))
                 this.CallWaitingUser(e.Status.Account.UserName);
             else if (Regex.IsMatch(content, RegexStringSet.WhatTimePattern))
@@ -383,14 +383,15 @@ namespace assistandon
             }
         }
 
-        void SetNickName(string content)
+        void SetNickName(string content, StreamUpdateEventArgs e)
         {
             try
             {
                 var setNickNameReg = new Regex(RegexStringSet.SetNickName, RegexOptions.IgnoreCase | RegexOptions.Singleline);
                 var m = setNickNameReg.Match(content);
 
-                var userName = m.Groups[3].Value;
+                //var userName = m.Groups[3].Value;
+                var userName = e.Status.Account.UserName;
                 var nickName = m.Groups[5].Value;
 
                 var data = this.userList.GetUserDataWithUserName(userName);
@@ -398,9 +399,9 @@ namespace assistandon
                 this.userList.SetUserDataWithUserName(data);
                 this.client.PostStatus($"じゃあこれからは{userName}さんのこと{nickName}って呼ぶね！", Visibility.Public);
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                Console.WriteLine(e.Message);
+                Console.WriteLine(exception.Message);
             }
         }
 

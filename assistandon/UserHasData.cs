@@ -10,5 +10,6 @@ namespace assistandon
     {
         public long UserId = -1;
         public DateTime lastCallTime = new DateTime(0);
+
     }
 }
