@@ -60,12 +60,15 @@ namespace assistandon
         private Dictionary<string, List<string>> WaitingBoard = new Dictionary<string, List<string>>();
 
         private Dictionary<long, DateTime> calledUsers = new Dictionary<long, DateTime>();
-
-        public NickNames nickNames = new NickNames();
-
-        private DateTime calledMeDateTime = new DateTime();
+        
         private DateTime quakeCheckDateTime = new DateTime();
 
+        private Dictionary<string, DateTime> callTime = new Dictionary<string, DateTime>();
+
+
+        [DataMember]
+        public UserList userList = new UserList();
+        public UserHasDataList userHasDataList = new UserHasDataList();
 
         // MainLogic
         async Task MainLogic()
@@ -73,16 +76,17 @@ namespace assistandon
             // htmlタグ除去
             var rejectHtmlTagReg = new Regex("<.*?>");
 
-            this.LoadNickNamePairs();
-
             // MastodonClient初期化
             this.client = new MastodonClient(AppRegistrateLogic(), AuthLogic());
+
+            this.userList.LoadUserLists();
             
             //LTLストリーム取得設定(mastonet改造拡張機能)
             var ltlStreaming = this.client.GetLocalStreaming();
             // LTLアップデート時処理
             ltlStreaming.OnUpdate += (sender, e) =>
             {
+                this.userList.AddUser(e.Status.Account);
                 var content = rejectHtmlTagReg.Replace(e.Status.Content, "");
                 Console.WriteLine($"LTL_Stream update {e.Status.Account.UserName}: {content}");
                 this.LocalUpdateBranch(e);
@@ -129,7 +133,7 @@ namespace assistandon
             if (Regex.IsMatch(content, RegexStringSet.QuakeCheckPattern) && DateTime.Now.CompareTo(this.quakeCheckDateTime + new TimeSpan(0, 15, 0)) == 1)
                 this.QuakeCheck();
             else if (Regex.IsMatch(content, RegexStringSet.SetNickName))
-                this.SetNickName(content);
+                this.SetNickName(content, e);
             else if (WaitingBoard.TryGetValue(e.Status.Account.UserName, out var n))
                 this.CallWaitingUser(e.Status.Account.UserName);
             else if (Regex.IsMatch(content, RegexStringSet.WhatTimePattern))
@@ -140,7 +144,7 @@ namespace assistandon
                 this.WellcomeNewComer(content);
             else if (Regex.IsMatch(content, RegexStringSet.CallMePattern))
                 this.CalledMe(e);
-
+            
             // renchan
             if (e.Status.Account.Id == renchanId)
                 this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} {e.Status.Url}", Visibility.Direct);
@@ -343,9 +347,13 @@ namespace assistandon
 
         void CalledMe(StreamUpdateEventArgs e)
         {
-            var userName = e.Status.Account.UserName;
-            this.client.PostStatus($"{nickNames.GetNickName(userName)}呼んだ？", Visibility.Public);
-            this.calledMeDateTime = DateTime.Now;
+            var data = this.userHasDataList.GetUserHasData(e.Status.Account.Id);
+            if (data.lastCallTime + new TimeSpan(0, 5, 0) < DateTime.Now)
+            {
+                this.client.PostStatus($"{this.userList.GetUserDataWithUserId(e.Status.Account.Id).NickName}呼んだ？", Visibility.Public);
+                data.lastCallTime = DateTime.Now;
+                this.userHasDataList.SetUserHasData(data);
+            }
         }
         
         void WaitCheckLogic(string userName)
@@ -371,15 +379,30 @@ namespace assistandon
 
             foreach(string waitingUser in waitingUsers)
             {
-                this.client.PostStatus($"@{waitingUser} {nickNames.GetNickName(userName)}さん来たよー。", Visibility.Direct);
+                this.client.PostStatus($"@{waitingUser} {userList.GetUserDataWithUserName(userName).NickName}さん来たよー。", Visibility.Direct);
             }
         }
 
-        void SetNickName(string content)
+        void SetNickName(string content, StreamUpdateEventArgs e)
         {
-            var nickNamePair = nickNames.SetNickName(content);
-            this.client.PostStatus($"じゃあこれからは{nickNamePair["userName"]}さんのこと{nickNamePair["nickName"]}って呼ぶね！", Visibility.Public);
-            this.SaveNickNamePairs();
+            try
+            {
+                var setNickNameReg = new Regex(RegexStringSet.SetNickName, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                var m = setNickNameReg.Match(content);
+
+                //var userName = m.Groups[3].Value;
+                var userName = e.Status.Account.UserName;
+                var nickName = m.Groups[5].Value;
+
+                var data = this.userList.GetUserDataWithUserName(userName);
+                data.NickName = nickName;
+                this.userList.SetUserDataWithUserName(data);
+                this.client.PostStatus($"じゃあこれからは{userName}さんのこと{nickName}って呼ぶね！", Visibility.Public);
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
+            }
         }
 
         void HeartBeatCheck()
@@ -415,33 +438,6 @@ namespace assistandon
             Environment.Exit(-1);
         }
 
-
-        void SaveNickNamePairs()
-        {
-            var fileName = @".\NickNames.xml";
-
-            var serializer = new DataContractSerializer(typeof(NickNames));
-            XmlWriter xw = XmlWriter.Create(fileName);
-            serializer.WriteObject(xw, nickNames);
-            xw.Close();
-        }
-
-        void LoadNickNamePairs()
-        {
-            try
-            {
-                var fileName = @".\NickNames.xml";
-
-                var serializer = new DataContractSerializer(typeof(NickNames));
-                XmlReader xr = XmlReader.Create(fileName);
-                this.nickNames = (NickNames)serializer.ReadObject(xr);
-                xr.Close();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-            }
-        }
 
         AppRegistration AppRegistrateLogic(string fileName = @".\AppRegistration.xml")
         {
