@@ -18,5 +18,8 @@ namespace assistandon
         public static string NewComerPattern = @"^(初めまして)@(\w*).(.*?)さん#お久bot$";
         public static string SetNickName = @"(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」)([^A-Za-z_0-9]*)([A-Za-z_0-9]*).*(は|を)(.*)(って|と)(よんで|読んで|呼んで)";
         public static string SetReverseName = @"^.*「(.*)」.*?(\w*?)(?!\w).*$";
+        public static string MaohBombPattern = @"^.*(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」)、まおー城爆破.*$";
+        public static string WeatherPattern = @"^.*(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」)、(.*?)の天気.*$";
+        public static string RoadPattern = @"^.*(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」)、(.*?)の道路.*$";
     }
 }
