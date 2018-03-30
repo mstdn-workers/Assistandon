@@ -65,6 +65,9 @@ namespace assistandon
 
         private Dictionary<string, DateTime> callTime = new Dictionary<string, DateTime>();
 
+        private int rencount = 0;
+        private DateTime renLastTime = new DateTime(0);
+
 
         [DataMember]
         public UserList userList = new UserList();
@@ -148,6 +151,8 @@ namespace assistandon
                 this.WeatherCheck(content);
             else if (Regex.IsMatch(content, RegexStringSet.RoadPattern))
                 this.RoadCheck(content);
+            else if (e.Status.Account.Id == renchanId)
+                this.RenchanUrusai();
             else if (Regex.IsMatch(content, RegexStringSet.CallMePattern))
                 this.CalledMe(e);
             
@@ -394,6 +399,20 @@ namespace assistandon
             var roadReg = new Regex(RegexStringSet.RoadPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
             var m = roadReg.Match(content);
             this.client.PostStatus($"れてぃあたん、{m.Groups[2].Value}の道路", Visibility.Public);
+        }
+
+        void RenchanUrusai()
+        {
+            if(renLastTime + new TimeSpan(0, 1, 0) > DateTime.Now)
+            {
+                if(rencount == 3)
+                    this.client.PostStatus($"漣ちゃん、うるさい", Visibility.Public);
+            }
+            else
+            {
+                rencount = 0;
+            }
+            rencount++;
         }
 
         void WaitCheckLogic(string userName)
