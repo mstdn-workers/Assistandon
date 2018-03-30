@@ -142,6 +142,12 @@ namespace assistandon
                 this.client.PostStatus("アウトじゃないよ！セーフだよ！", Visibility.Public);
             else if (Regex.IsMatch(content, RegexStringSet.NewComerPattern) && e.Status.Account.Id == renchanId)
                 this.WellcomeNewComer(content);
+            else if (Regex.IsMatch(content, RegexStringSet.MaohBombPattern))
+                this.client.PostStatus("ねえ漣ちゃん、まおー城爆破して", Visibility.Public);
+            else if (Regex.IsMatch(content, RegexStringSet.WeatherPattern))
+                this.WeatherCheck(content);
+            else if (Regex.IsMatch(content, RegexStringSet.RoadPattern))
+                this.RoadCheck(content);
             else if (Regex.IsMatch(content, RegexStringSet.CallMePattern))
                 this.CalledMe(e);
             
@@ -375,7 +381,21 @@ namespace assistandon
                 this.userHasDataList.SetUserHasData(data);
             }
         }
-        
+
+        void WeatherCheck(string content)
+        {
+            var weatherReg = new Regex(RegexStringSet.WeatherPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            var m = weatherReg.Match(content);
+            this.client.PostStatus($"ねえ漣ちゃん、{m.Groups[2].Value}の天気", Visibility.Public);
+        }
+
+        void RoadCheck(string content)
+        {
+            var roadReg = new Regex(RegexStringSet.RoadPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            var m = roadReg.Match(content);
+            this.client.PostStatus($"れてぃあたん、{m.Groups[2].Value}の道路", Visibility.Public);
+        }
+
         void WaitCheckLogic(string userName)
         {
             try
