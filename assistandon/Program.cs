@@ -217,6 +217,26 @@ namespace assistandon
                 // 地震情報
                 this.QuakeCheck();
             }
+            else if(Regex.IsMatch(content, @"^.*(admincmd) (ch_nickname) (.*?) (.*?)$"))
+            {
+                try
+                {
+                    var setNickNameReg = new Regex(@"^.*(admincmd) (ch_nickname) (.*?) (.*?)$", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                    var m = setNickNameReg.Match(content);
+
+                    var userName = m.Groups[3].Value;
+                    var nickName = m.Groups[4].Value;
+
+                    var data = this.userList.GetUserDataWithUserName(userName);
+                    data.NickName = nickName;
+                    this.userList.SetUserDataWithUserName(data);
+                    this.client.PostStatus($"@{e.Notification.Account.UserName} じゃあこれからは{userName}さんのこと{nickName}って呼ぶね！", Visibility.Direct);
+                }
+                catch (Exception exception)
+                {
+                    Console.WriteLine(exception.Message);
+                }
+            }
                 Console.WriteLine("<<--  Admin Command STOP.  -->>");
         }
 
