@@ -370,7 +370,7 @@ namespace assistandon
             var data = this.userHasDataList.GetUserHasData(e.Status.Account.Id);
             if (data.lastCallTime + new TimeSpan(0, 5, 0) < DateTime.Now)
             {
-                this.client.PostStatus($"{this.userList.GetUserDataWithUserId(e.Status.Account.Id).NickName}呼んだ？", Visibility.Public);
+                this.client.PostStatus($"{this.userList.GetUserDataWithUserId(e.Status.Account.Id).NickName} 、呼んだ？", Visibility.Public);
                 data.lastCallTime = DateTime.Now;
                 this.userHasDataList.SetUserHasData(data);
             }
