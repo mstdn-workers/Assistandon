@@ -68,6 +68,7 @@ namespace assistandon
         private int rencount = 0;
         private DateTime renLastTime = new DateTime(0);
 
+        private Dictionary<string, List<string>> roadCheckUsers = new Dictionary<string, List<string>>();
 
         [DataMember]
         public UserList userList = new UserList();
@@ -150,15 +151,12 @@ namespace assistandon
             else if (Regex.IsMatch(content, RegexStringSet.WeatherPattern))
                 this.WeatherCheck(content);
             else if (Regex.IsMatch(content, RegexStringSet.RoadPattern))
-                this.RoadCheck(content);
+                this.RoadCheck(content, e);
             else if (e.Status.Account.Id == renchanId)
                 this.RenchanUrusai();
             else if (Regex.IsMatch(content, RegexStringSet.CallMePattern))
                 this.CalledMe(e);
             
-            // renchan
-            if (e.Status.Account.Id == renchanId)
-                this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} {e.Status.Url}", Visibility.Direct);
         }
 
         void UserNotificationBranch(StreamNotificationEventArgs e)
@@ -394,12 +392,15 @@ namespace assistandon
             this.client.PostStatus($"ねえ漣ちゃん、{m.Groups[2].Value}の天気", Visibility.Public);
         }
 
-        void RoadCheck(string content)
+        void RoadCheck(string content, StreamUpdateEventArgs e)
         {
             var roadReg = new Regex(RegexStringSet.RoadPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
             var m = roadReg.Match(content);
             this.client.PostStatus($"れてぃあたん、{m.Groups[2].Value}の道路", Visibility.Public);
+            roadCheckUsers[m.Groups[2].Value].Add(e.Status.Account.UserName);
         }
+
+
 
         void RenchanUrusai()
         {
@@ -446,17 +447,26 @@ namespace assistandon
         {
             try
             {
-                var setNickNameReg = new Regex(RegexStringSet.SetNickName, RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                var m = setNickNameReg.Match(content);
+                if (Regex.IsMatch(content, RegexStringSet.NotSetPattern))
+                {
+                    this.client.PostStatus($"なんかその呼び方やだなぁ。。。　別のにして♪", Visibility.Public);
 
-                //var userName = m.Groups[3].Value;
-                var userName = e.Status.Account.UserName;
-                var nickName = m.Groups[5].Value;
+                }
+                else
+                {
+                    var setNickNameReg = new Regex(RegexStringSet.SetNickName, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                    var m = setNickNameReg.Match(content);
 
-                var data = this.userList.GetUserDataWithUserName(userName);
-                data.NickName = nickName;
-                this.userList.SetUserDataWithUserName(data);
-                this.client.PostStatus($"じゃあこれからは{userName}さんのこと{nickName}って呼ぶね！", Visibility.Public);
+                    //var userName = m.Groups[3].Value;
+                    var userName = e.Status.Account.UserName;
+                    var nickName = m.Groups[5].Value;
+
+                    var data = this.userList.GetUserDataWithUserName(userName);
+                    data.NickName = nickName;
+                    this.userList.SetUserDataWithUserName(data);
+                    this.client.PostStatus($"じゃあこれからは{userName}さんのこと{nickName}って呼ぶね！", Visibility.Public);
+
+                }
             }
             catch (Exception exception)
             {
