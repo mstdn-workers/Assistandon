@@ -152,6 +152,8 @@ namespace assistandon
                 this.WeatherCheck(content);
             else if (Regex.IsMatch(content, RegexStringSet.RoadPattern))
                 this.RoadCheck(content, e);
+            else if (Regex.IsMatch(content, RegexStringSet.RecordEvidencePattern))
+                Task.Run(() => this.RecordEvidence());
             else if (e.Status.Account.Id == renchanId)
                 this.RenchanUrusai();
             else if (Regex.IsMatch(content, RegexStringSet.CallMePattern))
@@ -399,9 +401,7 @@ namespace assistandon
             this.client.PostStatus($"れてぃあたん、{m.Groups[2].Value}の道路", Visibility.Public);
             roadCheckUsers[m.Groups[2].Value].Add(e.Status.Account.UserName);
         }
-
-
-
+        
         void RenchanUrusai()
         {
             if(renLastTime + new TimeSpan(0, 1, 0) > DateTime.Now)
@@ -413,6 +413,7 @@ namespace assistandon
             {
                 rencount = 0;
             }
+            renLastTime = DateTime.Now;
             rencount++;
         }
 
