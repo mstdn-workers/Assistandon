@@ -473,8 +473,38 @@ namespace assistandon
             }
         }
 
+        DateTime LoadLastDisconnectedTime()
+        {
+            try
+            {
+                using (var fs = new FileStream(@"./disconnected_time", FileMode.Open))
+                using (var sr = new StreamReader(fs))
+
+                {
+                    string text = sr.ReadToEnd();
+                    var dt = new DateTime(ticks: long.Parse(text));
+                    return dt;
+                }
+            }
+            catch
+            {
+                return new DateTime();
+            }
+        }
+        void SaveLastDisconnectedTime()
+        {
+            using (var fs = new FileStream(@"./disconnected_time", FileMode.Open))
+            using (var sw = new StreamWriter(fs))
+            {
+                sw.Write(DateTime.Now.Ticks.ToString());
+            }
+        }
         void HeartBeatCheck()
         {
+            var b = DateTime.Now.ToBinary();
+            var filename = @"";
+            var fs = new FileStream(filename, FileMode.Create);
+            fs.Write(b, 0, 1);
             if(DateTime.Now - this.lastHeartBeatTime > new TimeSpan(0, 0, 45))
             {
                 try
@@ -487,11 +517,12 @@ namespace assistandon
                     ServiceRestart();
                 }
             }
-            else if (DateTime.Now - this.lastHeartBeatTime > new TimeSpan(0, 0, 20))
+            else if (DateTime.Now - this.lastHeartBeatTime > new TimeSpan(0, 0, 30) && DateTime.Now - this.LoadLastDisconnectedTime() > new TimeSpan(0, 5, 0))
             {
                 try
                 {
                     this.client.PostStatus("ストリーム途切れてるっぽい？", Visibility.Public);
+                    this.SaveLastDisconnectedTime();
                 }
                 catch
                 {
