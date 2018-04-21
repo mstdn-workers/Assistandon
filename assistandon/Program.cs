@@ -501,10 +501,6 @@ namespace assistandon
         }
         void HeartBeatCheck()
         {
-            var b = DateTime.Now.ToBinary();
-            var filename = @"";
-            var fs = new FileStream(filename, FileMode.Create);
-            fs.Write(b, 0, 1);
             if(DateTime.Now - this.lastHeartBeatTime > new TimeSpan(0, 0, 45))
             {
                 try
