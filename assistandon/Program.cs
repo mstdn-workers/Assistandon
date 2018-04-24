@@ -341,19 +341,19 @@ namespace assistandon
             {
                 var url = "https://unnerv.jp/";
 
-                var jisinReg = new Regex(@"(最終報)(.*)((\d{4})年(\d{1,})月(\d{1,})日)(.*)((\d{1,})時(\d{1,})分)(頃、)(.*)(?:を震源とする)(.*)(?:最大震度)(.*?)(?:と推定)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                var jisinReg = new Regex(RegexStringSet.EewPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
                 var m = jisinReg.Match(content);
 
                 var datestr = m.Groups[3].Value;
-                var timestr = m.Groups[8].Value;
-                var shindo = m.Groups[14].Value;
-                var shingen = m.Groups[12].Value;
+                var timestr = m.Groups[7].Value;
+                var shindo = m.Groups[13].Value;
+                var shingen = m.Groups[11].Value;
 
                 var year = int.Parse(m.Groups[4].Value);
                 var month = int.Parse(m.Groups[5].Value);
                 var day = int.Parse(m.Groups[6].Value);
-                var hour = int.Parse(m.Groups[9].Value);
-                var min = int.Parse(m.Groups[10].Value);
+                var hour = int.Parse(m.Groups[8].Value);
+                var min = int.Parse(m.Groups[9].Value);
 
                 var quakeTime = new DateTime(year, month, day, hour, min, 0);
                 var elapsedTime = DateTime.Now - quakeTime;
