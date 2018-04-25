@@ -137,7 +137,7 @@ namespace assistandon
             if (Regex.IsMatch(content, RegexStringSet.QuakeCheckPattern) && DateTime.Now.CompareTo(this.quakeCheckDateTime + new TimeSpan(0, 15, 0)) == 1)
                 this.QuakeCheck();
             else if (Regex.IsMatch(content, RegexStringSet.SetNickName))
-                this.SetNickName(content, e);
+                this.SetNickName(content, e.Status.Account.UserName);
             else if (WaitingBoard.TryGetValue(e.Status.Account.UserName, out var n))
                 this.CallWaitingUser(e.Status.Account.UserName);
             else if (Regex.IsMatch(content, RegexStringSet.WhatTimePattern))
@@ -169,8 +169,8 @@ namespace assistandon
                 this.AdminCommand(content, e);
             else if (Regex.IsMatch(content, RegexStringSet.DirectQuakeCheckPattern))
                 this.QuakeCheck(e.Notification.Account.UserName);
-            else if (Regex.IsMatch(content, RegexStringSet.SetNickName))
-                this.SetNickName(content, e);
+            else if (Regex.IsMatch(content, RegexStringSet.SetNickName) && e.Notification.Status.Visibility == Visibility.Direct)
+                this.SetNickName(content, e.Notification.Account.UserName);
         }
 
         void UserStreamUpdateBranch(StreamUpdateEventArgs e)
@@ -444,7 +444,7 @@ namespace assistandon
             }
         }
 
-        void SetNickName(string content, StreamUpdateEventArgs e)
+        void SetNickName(string content, string userName)
         {
             try
             {
@@ -459,7 +459,6 @@ namespace assistandon
                     var m = setNickNameReg.Match(content);
 
                     //var userName = m.Groups[3].Value;
-                    var userName = e.Status.Account.UserName;
                     var nickName = m.Groups[5].Value;
 
                     var data = this.userList.GetUserDataWithUserName(userName);
