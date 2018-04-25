@@ -171,6 +171,8 @@ namespace assistandon
                 this.QuakeCheck(e.Notification.Account.UserName);
             else if (Regex.IsMatch(content, RegexStringSet.SetNickName) && e.Notification.Status.Visibility == Visibility.Direct)
                 this.SetNickName(content, e.Notification.Account.UserName);
+            else if (Regex.IsMatch(content, RegexStringSet.KiribanPattern) && e.Notification.Account.Id == long.Parse(ConfigurationManager.AppSettings["lucky_number_botId"]))
+                this.client.PostStatus("キリ番だ！やったー！", Visibility.Public);
         }
 
         void UserStreamUpdateBranch(StreamUpdateEventArgs e)

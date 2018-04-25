@@ -23,5 +23,6 @@ namespace assistandon
         public static string WeatherPattern = @"^.*(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」)、(.*?)の天気.*$";
         public static string RoadPattern = @"^.*(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」)、(.*?)の道路.*$";
         public static string RecordEvidencePattern = @"^.*(?<!「)(ゆき|ユキ|悠希|ゆっきー|ユッキー)(?!」)、(エビデンス|えびでんす|えびだんす|evi).*$";
+        public static string KiribanPattern = @"^(@\w*)(投稿数が) (\d*) (でキリ番になりました！)$";
     }
 }
