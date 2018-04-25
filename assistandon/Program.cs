@@ -169,6 +169,8 @@ namespace assistandon
                 this.AdminCommand(content, e);
             else if (Regex.IsMatch(content, RegexStringSet.DirectQuakeCheckPattern))
                 this.QuakeCheck(e.Notification.Account.UserName);
+            else if (Regex.IsMatch(content, RegexStringSet.SetNickName))
+                this.SetNickName(content, e);
         }
 
         void UserStreamUpdateBranch(StreamUpdateEventArgs e)
