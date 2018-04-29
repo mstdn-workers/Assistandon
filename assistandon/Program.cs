@@ -532,6 +532,7 @@ namespace assistandon
 
         void ServiceRestart()
         {
+            this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} サービスを再起動します。", Visibility.Direct);
             Environment.Exit(-1);
         }
 
