@@ -138,8 +138,10 @@ namespace assistandon
             else if (Regex.IsMatch(content, RegexStringSet.NullpoPattern))
                 this.client.PostStatus("がっ！", Visibility.Public);
             else if (Regex.IsMatch(content, @"((ぬ).*(る).*(ぽ))|((ぽ).*(る).*(ぬ))"))
+            {
                 this.client.PostStatus("がっ！", Visibility.Public);
                 this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} 【ぬるぽっぽい報告】\n{content}", Visibility.Direct);
+            }
             else if (Regex.IsMatch(content, RegexStringSet.SetNickName))
                 this.SetNickName(content, e.Status.Account.UserName);
             else if (WaitingBoard.TryGetValue(e.Status.Account.UserName, out var n))
