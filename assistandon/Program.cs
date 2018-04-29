@@ -135,6 +135,8 @@ namespace assistandon
 
             if (Regex.IsMatch(content, RegexStringSet.QuakeCheckPattern) && DateTime.Now.CompareTo(this.quakeCheckDateTime + new TimeSpan(0, 15, 0)) == 1)
                 this.QuakeCheck();
+            else if (Regex.IsMatch(content, RegexStringSet.NullpoPattern))
+                this.client.PostStatus("がっ！", Visibility.Public);
             else if (Regex.IsMatch(content, RegexStringSet.SetNickName))
                 this.SetNickName(content, e.Status.Account.UserName);
             else if (WaitingBoard.TryGetValue(e.Status.Account.UserName, out var n))
@@ -417,7 +419,7 @@ namespace assistandon
             renLastTime = DateTime.Now;
             rencount++;
         }
-
+        
         void WaitCheckLogic(string userName)
         {
             try
