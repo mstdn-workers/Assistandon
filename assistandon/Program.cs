@@ -135,6 +135,13 @@ namespace assistandon
 
             if (Regex.IsMatch(content, RegexStringSet.QuakeCheckPattern) && DateTime.Now.CompareTo(this.quakeCheckDateTime + new TimeSpan(0, 15, 0)) == 1)
                 this.QuakeCheck();
+            else if (Regex.IsMatch(content, RegexStringSet.NullpoPattern))
+                this.client.PostStatus("がっ！", Visibility.Public);
+            else if (Regex.IsMatch(content, @"((ぬ).*(る).*(ぽ))|((ぽ).*(る).*(ぬ))"))
+            {
+                this.client.PostStatus("がっ！", Visibility.Public);
+                this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} 【ぬるぽっぽい報告】\n{content}", Visibility.Direct);
+            }
             else if (Regex.IsMatch(content, RegexStringSet.SetNickName))
                 this.SetNickName(content, e.Status.Account.UserName);
             else if (WaitingBoard.TryGetValue(e.Status.Account.UserName, out var n))
@@ -417,7 +424,7 @@ namespace assistandon
             renLastTime = DateTime.Now;
             rencount++;
         }
-
+        
         void WaitCheckLogic(string userName)
         {
             try
@@ -532,6 +539,7 @@ namespace assistandon
 
         void ServiceRestart()
         {
+            this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} サービスを再起動します。", Visibility.Direct);
             Environment.Exit(-1);
         }
 
