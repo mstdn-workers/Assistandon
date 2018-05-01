@@ -137,7 +137,7 @@ namespace assistandon
                 this.QuakeCheck();
             else if (Regex.IsMatch(content, RegexStringSet.NullpoPattern))
                 this.client.PostStatus("がっ！", Visibility.Public);
-            else if (Regex.IsMatch(content, @"((ぬ|ヌ|ㇴ).*(る|ル|ㇽ).*(ぽ|ポ|ﾎﾟ))|((ぽ|ポ|ﾎﾟ).*(る|ル|ㇽ).*(ぬ|ヌ|ㇴ))"))
+            else if (Regex.IsMatch(content, @"((ぬ|ヌ|ﾇ).*(る|ル|ﾙ).*(ぽ|ポ|ﾎﾟ))|((ぽ|ポ|ﾎﾟ).*(る|ル|ﾙ).*(ぬ|ヌ|ﾇ))"))
             {
                 this.client.PostStatus("がっ！", Visibility.Public);
                 this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} 【ぬるぽっぽい報告】\n{content}", Visibility.Direct);
