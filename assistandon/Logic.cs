@@ -3,12 +3,17 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Configuration;
+using System.Linq;
 using Mastonet;
 using Mastonet.Entities;
 using System.Xml.Serialization;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Runtime.Serialization;
+using GoogleApi;
+using GoogleApi.Entities.Common.Enums;
+using GoogleApi.Entities.Places.Search.Text.Request;
+using GoogleApi.Entities.Places.Search.Text.Response;
 
 namespace assistandon
 {
@@ -121,6 +126,8 @@ namespace assistandon
                 this.CallWaitingUser(e.Status.Account.UserName);
             else if (Regex.IsMatch(content, RegexStringSet.WhatTimePattern))
                 this.WhatTime();
+            else if (Regex.IsMatch(content, RegexStringSet.MatsuyaPattern))
+                this.WhereMatsuya(content);
             else if (Regex.IsMatch(content, RegexStringSet.YukiOutPattern))
                 this.client.PostStatus("アウトじゃないよ！セーフだよ！", Visibility.Public);
             else if (Regex.IsMatch(content, RegexStringSet.NewComerPattern) && e.Status.Account.Id == renchanId)
@@ -452,6 +459,36 @@ namespace assistandon
             catch (Exception exception)
             {
                 Console.WriteLine(exception.Message);
+            }
+        }
+
+        void WhereMatsuya(string content)
+        {
+            var setMatsuyaReg = new Regex(RegexStringSet.MatsuyaPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            var m = setMatsuyaReg.Match(content);
+
+            var req = new PlacesTextSearchRequest();
+            req.Language = Language.Japanese;
+            req.Key = "AIzaSyDOFjkWnVMBNklD5RjTQX2T9XfwsAzHI2k";
+            req.Query = "松屋 " + m.Groups[2];
+
+            var httpEngine = new HttpEngine<PlacesTextSearchRequest, PlacesTextSearchResponse>();
+            var res = httpEngine.Query(req).Results.Take(3);
+
+            if (res.Count() == 0)
+            {
+                this.client.PostStatus("みつからなかったよ", Visibility.Public);
+            }
+            else
+            {
+                var tootText = "調べてみたら";
+                foreach(var r in res)
+                {
+                    tootText += r.Name + "、";
+                }
+                tootText = tootText.Substring(0, tootText.Length - 1);
+                tootText += "がみつかったよ";
+                this.client.PostStatus(tootText, Visibility.Public);
             }
         }
 
