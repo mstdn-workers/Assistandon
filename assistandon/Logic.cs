@@ -100,6 +100,8 @@ namespace assistandon
             Task.Run(() => ltlStreaming.Start());
             Task.Run(() => userStreaming.Start());
             Task.Run(() => this.Cycle());
+
+            this.AlertToFlows("The service is UP.");
         }
 
 
@@ -530,6 +532,7 @@ namespace assistandon
                 try
                 {
                     this.client.PostStatus("ストリーム途切れてるみたいだからサービス再起動するね。", Visibility.Public);
+                    this.AlertToFlows("Connection is broklen. Start the service restart sequence.");
                     ServiceRestart();
                 }
                 catch
@@ -542,6 +545,7 @@ namespace assistandon
                 try
                 {
                     this.client.PostStatus("ストリーム途切れてるっぽい？", Visibility.Public);
+                    this.AlertToFlows("Connection may be broken.");
                     this.SaveLastDisconnectedTime();
                 }
                 catch
@@ -554,7 +558,7 @@ namespace assistandon
 
         void ServiceRestart()
         {
-            this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} サービスを再起動します。", Visibility.Direct);
+            this.AlertToFlows("The service restarting.");
             Environment.Exit(-1);
         }
 
