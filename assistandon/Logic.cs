@@ -564,14 +564,21 @@ namespace assistandon
 
         void AlertToFlows(string text)
         {
-            var url = ConfigurationSettings.AppSettings["alert_url"];
-            using (var client = new HttpClient())
+            try
             {
-                var content = new FormUrlEncodedContent(new Dictionary<string, string>
+                var url = ConfigurationSettings.AppSettings["alert_url"];
+                using (var client = new HttpClient())
+                {
+                    var content = new FormUrlEncodedContent(new Dictionary<string, string>
                 {
                     {"body", text}
                 });
-                client.PostAsync(url, content);
+                    var res = client.PostAsync(url, content).Result;
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
             }
 
         }
