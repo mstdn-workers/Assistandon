@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Http;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
@@ -235,6 +236,10 @@ namespace assistandon
                 {
                     Console.WriteLine(exception.Message);
                 }
+            }
+            else if(Regex.IsMatch(content, @"^.*(admincmd) (test_notify)$"))
+            {
+                this.AlertToFlows(content);
             }
             Console.WriteLine("<<--  Admin Command STOP.  -->>");
         }
@@ -553,6 +558,19 @@ namespace assistandon
             Environment.Exit(-1);
         }
 
+        void AlertToFlows(string text)
+        {
+            var url = ConfigurationSettings.AppSettings["alert_url"];
+            using (var client = new HttpClient())
+            {
+                var content = new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    {"body", text}
+                });
+                client.PostAsync(url, content);
+            }
+
+        }
 
         AppRegistration AppRegistrateLogic(string fileName = @".\AppRegistration.xml")
         {
