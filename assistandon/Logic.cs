@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Http;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
@@ -99,6 +100,8 @@ namespace assistandon
             Task.Run(() => ltlStreaming.Start());
             Task.Run(() => userStreaming.Start());
             Task.Run(() => this.Cycle());
+
+            this.AlertToFlows("The service is UP.");
         }
 
 
@@ -235,6 +238,10 @@ namespace assistandon
                 {
                     Console.WriteLine(exception.Message);
                 }
+            }
+            else if(Regex.IsMatch(content, @"^.*(admincmd) (test_notify)$"))
+            {
+                this.AlertToFlows(content);
             }
             Console.WriteLine("<<--  Admin Command STOP.  -->>");
         }
@@ -525,6 +532,7 @@ namespace assistandon
                 try
                 {
                     this.client.PostStatus("ストリーム途切れてるみたいだからサービス再起動するね。", Visibility.Public);
+                    this.AlertToFlows("Connection is broklen. Start the service restart sequence.");
                     ServiceRestart();
                 }
                 catch
@@ -537,6 +545,7 @@ namespace assistandon
                 try
                 {
                     this.client.PostStatus("ストリーム途切れてるっぽい？", Visibility.Public);
+                    this.AlertToFlows("Connection may be broken.");
                     this.SaveLastDisconnectedTime();
                 }
                 catch
@@ -549,10 +558,23 @@ namespace assistandon
 
         void ServiceRestart()
         {
-            this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} サービスを再起動します。", Visibility.Direct);
+            this.AlertToFlows("The service restarting.");
             Environment.Exit(-1);
         }
 
+        void AlertToFlows(string text)
+        {
+            var url = ConfigurationSettings.AppSettings["alert_url"];
+            using (var client = new HttpClient())
+            {
+                var content = new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    {"body", text}
+                });
+                client.PostAsync(url, content);
+            }
+
+        }
 
         AppRegistration AppRegistrateLogic(string fileName = @".\AppRegistration.xml")
         {
