@@ -133,8 +133,8 @@ namespace assistandon
                 this.WhereMatsuya(content);
             else if (Regex.IsMatch(content, RegexStringSet.YukiOutPattern))
                 this.client.PostStatus("アウトじゃないよ！セーフだよ！", Visibility.Public);
-            else if (Regex.IsMatch(content, RegexStringSet.NewComerPattern) && e.Status.Account.Id == renchanId)
-                this.WellcomeNewComer(content);
+            //else if (Regex.IsMatch(content, RegexStringSet.NewComerPattern) && e.Status.Account.Id == renchanId)
+                //this.WellcomeNewComer(content);
             else if (Regex.IsMatch(content, RegexStringSet.MaohBombPattern))
                 this.client.PostStatus("ねえ漣ちゃん、まおー城爆破して", Visibility.Public);
             else if (Regex.IsMatch(content, RegexStringSet.WeatherPattern))
