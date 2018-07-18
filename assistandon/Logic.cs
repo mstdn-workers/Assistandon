@@ -118,10 +118,10 @@ namespace assistandon
                 this.QuakeCheck();
             else if (Regex.IsMatch(content, RegexStringSet.NullpoPattern))
                 this.client.PostStatus("がっ！", Visibility.Public);
-            else if (Regex.IsMatch(content, @"((ぬ|ヌ|ﾇ).*(る|ル|ﾙ).*(ぽ|ポ|ﾎﾟ))|((ぽ|ポ|ﾎﾟ).*(る|ル|ﾙ).*(ぬ|ヌ|ﾇ))"))
+            else if (Regex.IsMatch(e.Status.SpoilerText.ToString() + content, @"((ぬ|ヌ|ﾇ).*(る|ル|ﾙ).*(ぽ|ポ|ﾎﾟ))|((ぽ|ポ|ﾎﾟ).*(る|ル|ﾙ).*(ぬ|ヌ|ﾇ))"))
             {
                 this.client.PostStatus("がっ！", Visibility.Public);
-                this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} 【ぬるぽっぽい報告】\n{content}", Visibility.Direct);
+                this.client.PostStatus($"@{ConfigurationManager.AppSettings["adminName"]} 【ぬるぽっぽい報告】\n{e.Status.SpoilerText.ToString() + content}", Visibility.Direct);
             }
             else if (Regex.IsMatch(content, RegexStringSet.SetNickName))
                 this.SetNickName(content, e.Status.Account.UserName);
